@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { SimSpec, Control } from "@/lib/ai/schema";
+import { SimSpec } from "@/lib/ai/schema";
 
 type Props = {
   spec: SimSpec;
@@ -17,7 +17,6 @@ export function Sandbox({ spec, params }: Props) {
     if (!ctx) return;
 
     try {
-      // Wrap the AI-generated code in a function with sandboxed scope
       const fn = new Function("params", "ctx", spec.simulationCode);
       fn(params, ctx);
     } catch (err) {

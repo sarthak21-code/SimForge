@@ -8,7 +8,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export async function generateSim(userQuery: string): Promise<SimSpec> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // cheap + fast; upgrade to gpt-4o if needed
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userQuery },
@@ -20,8 +20,7 @@ export async function generateSim(userQuery: string): Promise<SimSpec> {
 
     const raw = response.choices[0].message.content || "{}";
     const parsed = JSON.parse(raw);
-    const validated = SimSpecSchema.parse(parsed);
-    return validated;
+    return SimSpecSchema.parse(parsed);
   } catch (err) {
     console.error("AI generation failed, using fallback:", err);
     return getTemplateFallback(userQuery);

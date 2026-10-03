@@ -38,13 +38,9 @@ You MUST respond with valid JSON matching this exact schema:
 
 CRITICAL RULES FOR simulationCode:
 - It must be a JavaScript function body that receives \`params\` (object of control values) and \`ctx\` (the canvas 2D context).
-- It must define and call a draw function.
-- Canvas size is 800x500.
+- It must draw directly to ctx. Canvas size is 800x500.
 - Use only Math, ctx, and params. No external libraries. No network. No DOM access beyond ctx.
-- The code runs on every animation frame OR on parameter change (we handle timing).
-- Return nothing. Draw directly to ctx.
 - Keep it under 80 lines. Simple is better.
-- Example simulationCode for projectile motion:
-  "const { angle, velocity, gravity } = params; const rad = angle * Math.PI / 180; const tMax = (2 * velocity * Math.sin(rad)) / gravity; const range = (velocity * velocity * Math.sin(2 * rad)) / gravity; ctx.clearRect(0,0,800,500); ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,800,500); ctx.strokeStyle='#334155'; ctx.beginPath(); ctx.moveTo(50,450); ctx.lineTo(750,450); ctx.stroke(); const scale = Math.min(700/range, 400/(velocity*velocity/(2*gravity))); for (let t=0; t<=tMax; t+=tMax/100) { const x = 50 + velocity*Math.cos(rad)*t*scale; const y = 450 - (velocity*Math.sin(rad)*t - 0.5*gravity*t*t)*scale; ctx.fillStyle='#60a5fa'; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill(); }"
+- Always clear first: ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,800,500);
 
 Return ONLY the JSON object. No markdown. No explanation.`;

@@ -16,7 +16,6 @@ export const projectileTemplate: SimSpec = {
     const tMax = (2 * velocity * Math.sin(rad)) / gravity;
     const range = (velocity * velocity * Math.sin(2 * rad)) / gravity;
     const maxHeight = (velocity * velocity * Math.sin(rad) * Math.sin(rad)) / (2 * gravity);
-    ctx.clearRect(0, 0, 800, 500);
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, 800, 500);
     ctx.strokeStyle = '#334155';
@@ -40,8 +39,8 @@ export const projectileTemplate: SimSpec = {
     ctx.stroke();
     ctx.fillStyle = '#f8fafc';
     ctx.font = '16px sans-serif';
-    ctx.fillText(\`Range: \${range.toFixed(1)} m\`, 20, 30);
-    ctx.fillText(\`Max Height: \${maxHeight.toFixed(1)} m\`, 20, 55);
+    ctx.fillText('Range: ' + range.toFixed(1) + ' m', 20, 30);
+    ctx.fillText('Max Height: ' + maxHeight.toFixed(1) + ' m', 20, 55);
   `,
   graphs: [],
   socraticQuestions: [
@@ -59,7 +58,7 @@ export const projectileTemplate: SimSpec = {
     },
   ],
   challenge: {
-    goal: "Hit a target at 200 m with a 10 m/s wind resistance.",
+    goal: "Hit a target at 200 m.",
     successCondition: "Range between 195 and 205",
   },
 };

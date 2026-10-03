@@ -9,7 +9,7 @@ export const ControlSchema = z.object({
   step: z.number().optional(),
   default: z.union([z.number(), z.boolean(), z.string()]),
   unit: z.string().optional(),
-  options: z.array(z.string()).optional(), // for dropdown
+  options: z.array(z.string()).optional(),
 });
 
 export const GraphSchema = z.object({
@@ -17,7 +17,6 @@ export const GraphSchema = z.object({
   label: z.string(),
   xLabel: z.string(),
   yLabel: z.string(),
-  // The AI provides points; we plot them
   color: z.string().default("#3b82f6"),
 });
 
@@ -54,15 +53,15 @@ export const SimSpecSchema = z.object({
     "custom",
   ]),
   controls: z.array(ControlSchema),
-  // AI generates the actual simulation logic as a string of JS
-  // that runs inside the sandbox with the controls as input.
   simulationCode: z.string(),
   graphs: z.array(GraphSchema),
   socraticQuestions: z.array(QuestionSchema),
-  challenge: z.object({
-    goal: z.string(),
-    successCondition: z.string(),
-  }).optional(),
+  challenge: z
+    .object({
+      goal: z.string(),
+      successCondition: z.string(),
+    })
+    .optional(),
 });
 
 export type SimSpec = z.infer<typeof SimSpecSchema>;
