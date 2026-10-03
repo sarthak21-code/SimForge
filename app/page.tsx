@@ -1,42 +1,48 @@
-import Link from "next/link";
+"use client";
+import { useEffect, useState } from "react";
+import { SimSpec } from "@/lib/ai/schema";
+import { Sandbox } from "@/lib/runtime/Sandbox";
+import { Controls } from "@/components/Controls";
+import { TutorPanel } from "@/components/TutorPanel";
 
-export default function Home() {
+export default function SimPage() {
+  const [spec, setSpec] = useState<SimSpec | null>(null);
+  const [params, setParams] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("currentSim");
+    if (raw) {
+      const parsed = JSON.parse(raw) as SimSpec;
+      setSpec(parsed);
+      const defaults: Record<string, any> = {};
+      parsed.controls.forEach((c) => (defaults[c.id] = c.default));
+      setParams(defaults);
+    }
+  }, []);
+
+  if (!spec) return <div className="p-10 text-white">Loading...</div>;
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white">
-      <div className="max-w-5xl mx-auto px-6 py-24">
-        <h1 className="text-6xl font-bold tracking-tight">
-          SimForge <span className="text-blue-400">Studio</span>
-        </h1>
-        <p className="mt-4 text-xl text-slate-300">
-          Turn any question into an interactive simulation.
-        </p>
-        <div className="mt-10 flex gap-4">
-          <Link
-            href="/create"
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold"
-          >
-            Create a Simulation
-          </Link>
-          <Link
-            href="/gallery"
-            className="px-6 py-3 border border-slate-700 hover:border-slate-500 rounded-lg font-semibold"
-          >
-            Browse Gallery
-          </Link>
+    <main className="min-h-screen bg-slate-950 text-white p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold">{spec.title}</h1>
+        <p className="text-slate-400 mt-1">{spec.description}</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="lg:col-span-2">
+            <Sandbox spec={spec} params={params} />
+          </div>
+          <div className="space-y-6">
+            <Controls
+              controls={spec.controls}
+              values={params}
+              onChange={(id, v) => setParams({ ...params, [id]: v })}
+            />
+          </div>
         </div>
-        <div className="mt-20 grid grid-cols-3 gap-6 text-slate-400">
-          <div>
-            <p className="text-3xl font-bold text-white">8+</p>
-            <p>Domains</p>
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-white">AI</p>
-            <p>Generated</p>
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-white">Free</p>
-            <p>For students</p>
-          </div>
+
+        <div className="mt-8">
+          <TutorPanel questions={spec.socraticQuestions} />
         </div>
       </div>
     </main>
