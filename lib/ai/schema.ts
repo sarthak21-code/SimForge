@@ -3,7 +3,7 @@ import { z } from "zod";
 export const ControlSchema = z.object({
   id: z.string(),
   label: z.string(),
-  type: z.enum(["slider", "toggle", "dropdown", "vector"]),
+  type: z.enum(["slider", "toggle", "dropdown"]),
   min: z.number().optional(),
   max: z.number().optional(),
   step: z.number().optional(),
@@ -46,6 +46,7 @@ export const SimSpecSchema = z.object({
     "projectile",
     "pendulum",
     "wave",
+    "orbit",
     "circuit",
     "sorting",
     "supply-demand",

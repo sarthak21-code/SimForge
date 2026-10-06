@@ -6,6 +6,14 @@ import { getTemplateFallback } from "../runtime/templates";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function generateSim(userQuery: string): Promise<SimSpec> {
+  // If OpenAI key is missing or dummy placeholder, directly use parameter-configured template
+  const isDummyKey =
+    !process.env.OPENAI_API_KEY ||
+    process.env.OPENAI_API_KEY.includes("your_openai_key");
+  if (isDummyKey) {
+    return getTemplateFallback(userQuery);
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
