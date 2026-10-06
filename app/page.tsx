@@ -16,47 +16,31 @@ import {
 export default function Home() {
   return (
     <main className="relative isolate min-h-screen overflow-hidden">
-      {/* 3D Hero background */}
-      <Hero3D />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-24 z-[1] mx-auto hidden h-[440px] max-w-7xl opacity-25 lg:block">
-        <svg viewBox="0 0 1220 440" className="h-full w-full" fill="none">
-          <defs>
-            <radialGradient id="hero-core"><stop stopColor="#C4B5FD" stopOpacity=".9"/><stop offset="1" stopColor="#6366F1" stopOpacity=".12"/></radialGradient>
-          </defs>
-          <g transform="translate(210 0)">
-          <ellipse cx="930" cy="226" rx="218" ry="71" transform="rotate(-24 930 226)" stroke="#818CF8" strokeOpacity=".6"/>
-          <ellipse cx="930" cy="226" rx="157" ry="51" transform="rotate(26 930 226)" stroke="#22D3EE" strokeOpacity=".42"/>
-          <circle cx="930" cy="226" r="30" fill="url(#hero-core)" stroke="#C4B5FD" strokeOpacity=".65"/>
-          <circle cx="752" cy="148" r="7" fill="#A5B4FC"/>
-          <circle cx="1057" cy="169" r="5" fill="#67E8F9"/>
-          <circle cx="804" cy="291" r="3" fill="#C4B5FD"/>
-          <path d="M930 188v-22m0 120v-22m38-38h22m-120 0h22" stroke="#C4B5FD" strokeOpacity=".48" strokeLinecap="round"/>
-          <path d="M930 196v30l22 13" stroke="#E0E7FF" strokeOpacity=".78" strokeLinecap="round" strokeLinejoin="round"/>
-          </g>
-        </svg>
-      </div>
-
-      {/* Hero content */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-24 text-center">
+      <section className="hero-shell relative mx-auto grid min-h-[calc(100svh-64px)] max-w-[1440px] grid-cols-1 items-center gap-y-1 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[.96fr_1.04fr] lg:gap-x-5 lg:px-10 lg:py-8">
+        <div className="relative z-10 order-1 mx-auto max-w-[570px] text-center lg:mx-0 lg:text-left">
         <div className="fade-up">
-          <Badge className="mb-6">
+          <Badge className="mb-5">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Interactive learning workspace</span>
+            <span>AI-powered interactive simulations</span>
           </Badge>
         </div>
 
-        <h1 className="fade-up text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]">
+        <h1 className="fade-up text-5xl font-semibold tracking-[-.055em] leading-[1.02] sm:text-6xl lg:text-[3.5rem] xl:text-[4.45rem]">
           <span className="gradient-text">Turn any question</span>
           <br />
           <span className="text-slate-200">into a simulation.</span>
         </h1>
 
-        <p className="fade-up mt-6 text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Explore physics, mathematics, computer science, economics and more through
-          simulations you can adjust, measure and question.
+        <p className="fade-up mx-auto mt-6 max-w-[510px] text-base leading-7 text-slate-400 sm:text-lg lg:mx-0">
+          Explore ideas by turning natural language into interactive experiments you can manipulate, measure and understand.
         </p>
+        </div>
 
-        <div className="fade-up mt-10 flex flex-wrap gap-3 justify-center">
+        <div className="relative order-2 mx-auto -mt-1 h-[270px] w-full max-w-[560px] sm:h-[340px] lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:mt-0 lg:h-[min(72vh,620px)] lg:max-w-none">
+          <Hero3D />
+        </div>
+
+        <div className="relative z-10 order-3 -mt-1 flex flex-wrap justify-center gap-3 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:justify-start">
           <Link href="/create">
             <Button size="lg" className="group">
               Start creating
@@ -65,23 +49,34 @@ export default function Home() {
           </Link>
           <Link href="/gallery">
             <Button size="lg" variant="outline">
-              Browse gallery
+              Explore simulations
             </Button>
           </Link>
         </div>
-
-        <div className="fade-up mt-6 text-xs text-slate-500">Start with a prompt, then explore the model through live controls and data.</div>
       </section>
 
-      {/* Feature grid */}
+      {/* Describe → interact → understand */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 pb-32">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-100">
-            An interactive lab, from every angle
+            From a question to a working model
           </h2>
           <p className="mt-3 text-slate-400">
-            From a single sentence to a full interactive lab.
+            One experiment, with the tools to explore what changes and why.
           </p>
+        </div>
+
+        <div className="mb-16 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StepCard index="01" title="Describe it" desc="Start with a question in your own words. SimForge shapes it into an interactive experiment." icon={<Sparkles className="h-5 w-5" />} />
+          <StepCard index="02" title="Interact with it" desc="Adjust the controls and watch the simulation respond as conditions change." icon={<Zap className="h-5 w-5" />} />
+          <StepCard index="03" title="Understand it" desc="Read the measurements, follow the graph and learn from guided challenges and questions." icon={<BookOpen className="h-5 w-5" />} />
+        </div>
+
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-100">Everything connected to the experiment</h2>
+            <p className="mt-2 text-sm text-slate-400">A complete workspace for building, testing and sharing ideas.</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -151,6 +146,19 @@ export default function Home() {
         SimForge · Interactive simulations for curious minds
       </footer>
     </main>
+  );
+}
+
+function StepCard({ index, title, desc, icon }: { index: string; title: string; desc: string; icon: React.ReactNode }) {
+  return (
+    <Card className="relative min-h-52 overflow-hidden p-6 transition-colors hover:border-indigo-300/20">
+      <div className="mb-8 flex items-center justify-between">
+        <span className="grid h-10 w-10 place-items-center rounded-xl border border-indigo-300/15 bg-indigo-300/[.07] text-indigo-200">{icon}</span>
+        <span className="font-mono text-xs tracking-[.18em] text-slate-600">{index}</span>
+      </div>
+      <h3 className="text-lg font-semibold tracking-tight text-slate-100">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">{desc}</p>
+    </Card>
   );
 }
 
