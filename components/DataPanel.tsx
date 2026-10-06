@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { SimSpec } from "@/lib/ai/schema";
+import type { SimSpec } from "@/lib/ai/schema";
 
 type Props = {
   spec: SimSpec;
@@ -98,19 +98,19 @@ export function DataPanel({ spec, params }: Props) {
   }, [spec.template, params]);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+    <div className="glass rounded-2xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-500" />
-          Live Physical Parameters
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
+          Live measurements
         </h3>
         <span className="text-xs text-slate-500">Live Telemetry</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {Object.entries(metrics).map(([key, val]) => (
-          <div key={key} className="bg-slate-950/80 border border-slate-800/80 rounded p-2.5">
+          <div key={key} className="min-w-0 rounded-xl border border-white/[.06] bg-slate-950/45 p-3">
             <p className="text-[11px] text-slate-400 truncate">{key}</p>
-            <p className="text-sm font-semibold text-blue-300 font-mono mt-0.5">{val}</p>
+            <p className="mt-1 truncate font-mono text-sm font-medium text-indigo-200">{val}</p>
           </div>
         ))}
       </div>

@@ -1,14 +1,11 @@
 "use client";
 import { SimSpec } from "@/lib/ai/schema";
-import { TutorPanel } from "./TutorPanel";
-import { ChallengeMode } from "./ChallengeMode";
 
 type Props = {
   spec: SimSpec;
-  params: Record<string, any>;
 };
 
-export function LearnSection({ spec, params }: Props) {
+export function LearnSection({ spec }: Props) {
   const template = spec.template;
 
   const educationalData: Record<
@@ -135,10 +132,10 @@ export function LearnSection({ spec, params }: Props) {
   const edu = educationalData[template] || educationalData.projectile;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-6">
+      <div className="glass rounded-2xl p-5 space-y-6 sm:p-6">
       <div className="border-b border-slate-800 pb-4">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <span>📚</span>
+          <span className="grid h-7 w-7 place-items-center rounded-lg border border-indigo-300/15 bg-indigo-300/[.07] text-xs text-indigo-200">∑</span>
           <span>Learn & Understand</span>
         </h2>
         <p className="text-sm text-slate-300 mt-2 leading-relaxed">
@@ -149,7 +146,7 @@ export function LearnSection({ spec, params }: Props) {
       {/* Variables and Equations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Variables */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-4">
+        <div className="rounded-xl border border-white/[.07] bg-slate-950/40 p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
             Key Variables
           </h3>
@@ -169,7 +166,7 @@ export function LearnSection({ spec, params }: Props) {
         </div>
 
         {/* Equations */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-4">
+        <div className="rounded-xl border border-white/[.07] bg-slate-950/40 p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
             Governing Equations
           </h3>
@@ -188,28 +185,15 @@ export function LearnSection({ spec, params }: Props) {
       </div>
 
       {/* What is happening description */}
-      <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg p-4">
+      <div className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.035] p-4">
         <h3 className="text-sm font-semibold text-blue-300 mb-1 flex items-center gap-1.5">
-          <span>💡</span> What is happening in this simulation?
+          <span className="text-cyan-300">↳</span> What is happening in this simulation?
         </h3>
         <p className="text-xs text-slate-300 leading-relaxed">
           {edu.whatIsHappening}
         </p>
       </div>
 
-      {/* Socratic Questions */}
-      {spec.socraticQuestions && spec.socraticQuestions.length > 0 && (
-        <div className="pt-2">
-          <TutorPanel questions={spec.socraticQuestions} />
-        </div>
-      )}
-
-      {/* Challenge Mode */}
-      {spec.challenge && (
-        <div className="pt-2">
-          <ChallengeMode challenge={spec.challenge} params={params} spec={spec} />
-        </div>
-      )}
     </div>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 import { Control } from "@/lib/ai/schema";
 
+type ParamValue = number | boolean | string;
+
 type Props = {
   controls: Control[];
-  values: Record<string, any>;
-  onChange: (id: string, value: any) => void;
+  values: Record<string, ParamValue>;
+  onChange: (id: string, value: ParamValue) => void;
 };
 
 export function Controls({ controls, values, onChange }: Props) {
@@ -12,35 +14,40 @@ export function Controls({ controls, values, onChange }: Props) {
     <div className="space-y-4">
       {controls.map((c) => (
         <div key={c.id}>
-          <label className="flex justify-between text-sm text-slate-300 mb-1">
+          <label htmlFor={`control-${c.id}`} className="flex justify-between text-sm text-slate-300 mb-2">
             <span>{c.label}</span>
             <span className="text-blue-400">
-              {values[c.id]}
+              <span className="tabular-nums">{String(values[c.id] ?? c.default)}</span>
               {c.unit || ""}
             </span>
           </label>
           {c.type === "slider" && (
             <input
+              id={`control-${c.id}`}
+              aria-label={c.label}
               type="range"
               min={c.min}
               max={c.max}
               step={c.step}
-              value={values[c.id] as number}
+              value={Number(values[c.id] ?? c.default)}
               onChange={(e) => onChange(c.id, parseFloat(e.target.value))}
               className="w-full accent-blue-500"
             />
           )}
           {c.type === "toggle" && (
             <input
+              id={`control-${c.id}`}
+              aria-label={c.label}
               type="checkbox"
-              checked={values[c.id] as boolean}
+              checked={Boolean(values[c.id] ?? c.default)}
               onChange={(e) => onChange(c.id, e.target.checked)}
               className="accent-blue-500"
             />
           )}
           {c.type === "dropdown" && (
             <select
-              value={values[c.id] as string}
+              id={`control-${c.id}`}
+              value={String(values[c.id] ?? c.default)}
               onChange={(e) => onChange(c.id, e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded p-2"
             >

@@ -1,6 +1,19 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Sparkles, Command, Loader2 } from "lucide-react";
+
+const EXAMPLES = [
+  "Projectile motion with air resistance",
+  "How does a pendulum swing?",
+  "Supply and demand with a tax",
+  "Sorting algorithms visualized",
+  "Population growth over time",
+  "RC circuit charging curve",
+];
 
 export default function CreatePage() {
   const [query, setQuery] = useState("");
@@ -8,179 +21,102 @@ export default function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  async function handleGenerate(overrideQuery?: string) {
-    const rawQuery = overrideQuery || query;
-    const trimmed = rawQuery.trim();
-    if (!trimmed) return;
+  async function handleGenerate() {
+    if (!query.trim() || loading) return;
     setLoading(true);
     setError(null);
-
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: trimmed }),
+        body: JSON.stringify({ query }),
       });
-
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.error || `Server error ${res.status}`);
-      }
-
-      const sim = body;
-
-      // Always persist in sessionStorage so sim/current works immediately
+      const sim = await res.json();
+      if (!res.ok) throw new Error(sim.error || "Generation failed. Please try again.");
       sessionStorage.setItem("currentSim", JSON.stringify(sim));
-
-      // Navigate to saved DB ID if returned, else /sim/current
-      if (sim.id) {
-        router.push(`/sim/${sim.id}`);
-      } else {
-        router.push("/sim/current");
-      }
-    } catch (err: any) {
+      router.push(sim.id ? `/sim/${sim.id}` : "/sim/current");
+    } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   }
 
-  const exampleCategories = [
-    {
-      type: "Projectile",
-      icon: "🚀",
-      prompts: [
-        "Show a ball thrown at 45 degrees.",
-        "Show a projectile launched at 60 degrees with speed 70 m/s.",
-        "Projectile motion on the Moon with low gravity.",
-      ],
-    },
-    {
-      type: "Wave",
-      icon: "🌊",
-      prompts: [
-        "Create a sine wave with high frequency.",
-        "Create a wave with high frequency and low amplitude.",
-        "Fast traveling wave with long wavelength.",
-      ],
-    },
-    {
-      type: "Orbit",
-      icon: "🪐",
-      prompts: [
-        "Show a planet orbiting the Sun.",
-        "Show a planet orbiting with high velocity.",
-        "Planet orbiting a massive star at large distance.",
-      ],
-    },
-    {
-      type: "Pendulum",
-      icon: "⏱️",
-      prompts: [
-        "Create a pendulum with a long string.",
-        "Show a pendulum with a large starting angle.",
-        "Pendulum on Mars with no damping.",
-      ],
-    },
-  ];
-
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center px-4 sm:px-6 py-12">
-      <div className="max-w-2xl w-full space-y-6">
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <a href="/" className="text-slate-400 hover:text-white text-xs transition flex items-center gap-1">
-            <span>←</span> Back to Home
-          </a>
-          <a href="/gallery" className="text-slate-400 hover:text-white text-xs transition">
-            Explore Gallery →
-          </a>
-        </div>
-
-        {/* Title */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-800/40 text-blue-400 text-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            AI Simulation Generator
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            What do you want to simulate?
+    <main className="min-h-screen px-6 py-16">
+      <div className="max-w-3xl mx-auto fade-up">
+        <div className="text-center mb-10">
+          <Badge className="mb-4">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            AI Simulator
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+            What do you want to{" "}
+            <span className="gradient-text">explore?</span>
           </h1>
-          <p className="text-slate-400 text-sm max-w-lg mx-auto">
-            Describe any physics scenario in plain English. SimForge identifies the simulation, extracts parameters, and runs it instantly.
+          <p className="mt-4 text-slate-400">
+            Describe anything. SimForge will build an interactive simulation for you.
           </p>
         </div>
 
-        {/* Input Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 shadow-xl space-y-4">
+        <Card className="glass-strong p-2">
+          <label htmlFor="simulation-prompt" className="sr-only">Describe the simulation you want to explore</label>
           <textarea
+            id="simulation-prompt"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                handleGenerate();
-              }
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") handleGenerate();
             }}
-            placeholder="e.g. 'Show a projectile launched at 60 degrees', 'Create a wave with high frequency', 'Show a planet orbiting with high velocity'..."
-            className="w-full h-28 p-3.5 bg-slate-950 border border-slate-700/80 rounded-lg resize-none focus:border-blue-500 outline-none text-white text-sm placeholder:text-slate-500 leading-relaxed"
+            placeholder="e.g. Explain projectile motion with air resistance..."
+            className="w-full h-36 p-5 bg-transparent resize-y outline-none text-slate-100 placeholder:text-slate-500 text-base leading-relaxed focus-visible:ring-0"
+            disabled={loading}
           />
 
-          <button
-            onClick={() => handleGenerate()}
-            disabled={loading || !query.trim()}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 rounded-lg font-semibold text-sm transition flex items-center justify-center gap-2 shadow-sm"
-          >
-            {loading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Interpreting prompt & generating simulation...</span>
-              </>
-            ) : (
-              <span>Launch Simulation →</span>
-            )}
-          </button>
-
-          {error && (
-            <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-lg text-red-300 text-xs text-center leading-relaxed">
-              ⚠️ {error}
+          <div className="flex items-center justify-between border-t border-white/5 pt-3 px-2">
+            <div className="flex items-center gap-2 text-xs text-slate-500" aria-hidden="true">
+              <kbd className="px-2 py-1 rounded bg-white/5 border border-white/10 flex items-center gap-1">
+                <Command className="w-3 h-3" /> + Enter
+              </kbd>
+              <span>to generate</span>
             </div>
-          )}
+            <Button onClick={handleGenerate} disabled={loading || !query.trim()}>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Building simulation…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Generate Simulation
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
 
-          <p className="text-[11px] text-slate-500 text-center">
-            Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">Ctrl+Enter</kbd> to launch
-          </p>
-        </div>
+        {loading && <p role="status" className="mt-3 flex items-center justify-center gap-2 text-sm text-slate-400"><Sparkles className="h-4 w-4 text-indigo-300" />Generating the simulation from your description. This can take a moment.</p>}
 
-        {/* Example Prompt Categories */}
-        <div className="space-y-3 pt-2">
-          <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">
-            Or pick an example scenario:
+        {error && (
+          <div role="alert" className="mt-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-10">
+          <p className="text-xs uppercase tracking-widest text-slate-500 mb-3">
+            Try one of these
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {exampleCategories.map((cat) => (
-              <div
-                key={cat.type}
-                className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 space-y-2 hover:border-slate-700 transition"
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLES.map((ex) => (
+              <button
+                key={ex}
+                onClick={() => setQuery(ex)}
+                disabled={loading}
+                className="px-3 py-1.5 rounded-full text-sm border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-slate-300 transition-all disabled:opacity-50"
               >
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-                  <span>{cat.icon}</span>
-                  <span>{cat.type}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {cat.prompts.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => {
-                        setQuery(p);
-                        handleGenerate(p);
-                      }}
-                      className="block w-full text-left text-[11px] text-slate-400 hover:text-blue-300 hover:bg-slate-800/60 px-2 py-1 rounded transition truncate"
-                    >
-                      • {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                {ex}
+              </button>
             ))}
           </div>
         </div>

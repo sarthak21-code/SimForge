@@ -1,26 +1,204 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #05070f;
+  --bg-elevated: #0a0e1a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --text: #e5e9f0;
+  --text-muted: #8b94a7;
+  --accent: #6366f1;
+  --accent-2: #a855f7;
+  --accent-3: #22d3ee;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html,
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 16% 0%, rgba(99,102,241,.11), transparent 42%),
+    radial-gradient(ellipse at 88% 8%, rgba(168,85,247,.075), transparent 38%),
+    radial-gradient(ellipse at 55% 96%, rgba(34,211,238,.04), transparent 45%),
+    linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+  background-size: auto, auto, auto, 60px 60px, 60px 60px;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { min-height: 100vh; }
+
+.site-header {
+  position: relative;
+  z-index: 20;
+  height: 64px;
+  border-bottom: 1px solid rgba(255,255,255,.065);
+  background: rgba(5,7,15,.72);
+  backdrop-filter: blur(16px);
+}
+.site-header-inner {
+  height: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand-mark { display:flex; align-items:center; gap:10px; color:#eef0f8; font-size:15px; font-weight:650; letter-spacing:-.035em; }
+.brand-icon { display:grid; place-items:center; width:28px; height:28px; color:#c4b5fd; border:1px solid rgba(167,139,250,.24); border-radius:9px; background:linear-gradient(145deg,rgba(99,102,241,.22),rgba(34,211,238,.08)); }
+.site-nav { display:flex; align-items:center; gap:24px; color:#98a1b5; font-size:13px; }
+.site-nav a { display:inline-flex; align-items:center; gap:5px; transition:color .18s ease; }
+.site-nav a:hover { color:#f1f3fa; }
+.site-nav .nav-create { padding:8px 12px; color:#e5e9f0; border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.045); }
+
+/* Aurora background */
+body::before {
+  content: none;
+}
+
+/* Grid overlay */
+body::after {
+  content: none;
+}
+
+/* Glass surfaces */
+.glass {
+  background: linear-gradient(155deg, rgba(14, 19, 34, 0.82), rgba(8, 12, 23, 0.82));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+.glass-strong {
+  background: linear-gradient(155deg, rgba(17, 22, 39, 0.94), rgba(9, 13, 25, 0.96));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-strong);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 40%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glowing button */
+.btn-glow {
+  position: relative;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 10px 40px -10px rgba(99, 102, 241, 0.7);
+  transition: all 0.2s ease;
+}
+
+.btn-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+    0 15px 50px -10px rgba(99, 102, 241, 0.9);
+  transform: translateY(-1px);
+}
+
+/* Fade-in animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.fade-up {
+  animation: fadeUp 0.5s ease forwards;
+}
+
+a, button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid rgba(129,140,248,.9); outline-offset: 3px; }
+::selection { color:#fff; background:rgba(99,102,241,.48); }
+
+@media (max-width: 640px) {
+  .site-header-inner { padding: 0 18px; }
+  .site-nav { gap: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
+
+/* Shimmer skeleton */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Custom range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(99, 102, 241, 0.5);
+  transition: all 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.2), 0 4px 16px rgba(99, 102, 241, 0.7);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

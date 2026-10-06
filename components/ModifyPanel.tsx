@@ -1,11 +1,14 @@
 "use client";
 import { useState } from "react";
-import { SimSpec } from "@/lib/ai/schema";
+import { Sparkles } from "lucide-react";
+import type { SimSpec } from "@/lib/ai/schema";
+
+type ParamValue = number | boolean | string;
 
 type Props = {
   spec: SimSpec;
-  currentParams: Record<string, any>;
-  onApplyModification: (newParams: Record<string, any>, updatedSpec: SimSpec) => void;
+  currentParams: Record<string, ParamValue>;
+  onApplyModification: (newParams: Record<string, ParamValue>, updatedSpec: SimSpec) => void;
 };
 
 export function ModifyPanel({ spec, currentParams, onApplyModification }: Props) {
@@ -92,10 +95,10 @@ export function ModifyPanel({ spec, currentParams, onApplyModification }: Props)
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+    <div className="glass rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">✨</span>
-        <h3 className="text-base font-semibold text-white">Modify with AI</h3>
+        <span className="grid h-7 w-7 place-items-center rounded-lg border border-violet-300/15 bg-violet-300/[.07] text-violet-200"><Sparkles size={15} /></span>
+        <h3 className="text-base font-semibold text-slate-100">Modify this experiment</h3>
         <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
           Remix
         </span>
@@ -108,18 +111,19 @@ export function ModifyPanel({ spec, currentParams, onApplyModification }: Props)
       <div className="flex gap-2">
         <input
           type="text"
+          aria-label="Describe a change to this simulation"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleModify();
           }}
           placeholder="e.g. 'Double gravity', 'Increase angle to 60°', 'Pause'..."
-          className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 outline-none"
+          className="min-h-11 flex-1 rounded-xl border border-white/10 bg-slate-950/65 px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-indigo-400/50"
         />
         <button
           onClick={() => handleModify()}
           disabled={loading || !prompt.trim()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 rounded-lg font-medium text-sm transition shrink-0"
+          className="min-h-11 shrink-0 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400 disabled:pointer-events-none disabled:opacity-50"
         >
           {loading ? "Modifying..." : "Apply"}
         </button>
@@ -144,6 +148,8 @@ export function ModifyPanel({ spec, currentParams, onApplyModification }: Props)
       {/* Feedback banner */}
       {feedback && (
         <div
+          role="status"
+          aria-live="polite"
           className={`mt-3 p-2.5 rounded-lg text-xs border ${
             feedback.type === "success"
               ? "bg-green-950/40 border-green-700 text-green-300"

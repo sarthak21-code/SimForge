@@ -1,54 +1,56 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { SimSpec } from "@/lib/ai/schema";
+import { ArrowLeft, Check, Copy, FlaskConical, Play, RotateCcw, Save, Share2, Pause, Sparkles } from "lucide-react";
+import type { SimSpec } from "@/lib/ai/schema";
 import { Sandbox } from "@/lib/runtime/Sandbox";
 import { Controls } from "@/components/Controls";
 import { GraphPanel } from "@/components/GraphPanel";
 import { DataPanel } from "@/components/DataPanel";
 import { ModifyPanel } from "@/components/ModifyPanel";
 import { LearnSection } from "@/components/LearnSection";
+import { ChallengeMode } from "@/components/ChallengeMode";
+import { TutorPanel } from "@/components/TutorPanel";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+
+type ParamValue = number | boolean | string;
 
 export default function SimPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [spec, setSpec] = useState<SimSpec | null>(null);
-  const [params, setParams] = useState<Record<string, any>>({});
+  const [params, setParams] = useState<Record<string, ParamValue>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Save & Share status
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [currentId, setCurrentId] = useState<string | null>(id === "current" ? null : id);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setError(null);
       try {
         if (id === "current") {
           const raw = sessionStorage.getItem("currentSim");
-          if (raw) {
-            const parsed = JSON.parse(raw) as SimSpec & { id?: string };
-            setSpec(parsed);
-            if (parsed.id) setCurrentId(parsed.id);
-            const defaults: Record<string, any> = {};
-            parsed.controls.forEach((c) => (defaults[c.id] = c.default));
-            setParams(defaults);
-          } else {
-            setError("No simulation found. Please generate one first.");
-          }
+          if (!raw) throw new Error("No simulation found. Please generate one first.");
+          const parsed = JSON.parse(raw) as SimSpec & { id?: string };
+          setSpec(parsed);
+          if (parsed.id) setCurrentId(parsed.id);
+          setParams(Object.fromEntries(parsed.controls.map((control) => [control.id, control.default])));
         } else {
           const res = await fetch(`/api/sims/${id}`);
           if (!res.ok) throw new Error("Simulation not found");
           const data = await res.json();
-          const simSpec: SimSpec = data.spec;
+          const simSpec = data.spec as SimSpec;
           setSpec(simSpec);
           setCurrentId(id);
-          const defaults: Record<string, any> = {};
-          simSpec.controls.forEach((c) => (defaults[c.id] = c.default));
-          setParams(defaults);
+          setParams(Object.fromEntries(simSpec.controls.map((control) => [control.id, control.default])));
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load simulation.");
@@ -59,233 +61,181 @@ export default function SimPage() {
     load();
   }, [id]);
 
-  // Handle Modify/Remix parameter updates
-  function handleApplyModification(newOverrides: Record<string, any>, updatedSpec: SimSpec) {
+  function handleApplyModification(newOverrides: Record<string, ParamValue>, updatedSpec: SimSpec) {
     setParams((prev) => ({ ...prev, ...newOverrides }));
     setSpec(updatedSpec);
     sessionStorage.setItem("currentSim", JSON.stringify({ ...updatedSpec, id: currentId }));
   }
 
-  // Handle Save
+  function savePayload() {
+    if (!spec) return null;
+    return {
+      ...spec,
+      controls: spec.controls.map((control) => ({
+        ...control,
+        default: params[control.id] !== undefined ? params[control.id] : control.default,
+      })),
+    } satisfies SimSpec;
+  }
+
+  async function persistSimulation() {
+    const specToSave = savePayload();
+    if (!spec || !specToSave) throw new Error("Simulation is not ready to save.");
+    const res = await fetch("/api/sims", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: spec.title, query: spec.description, spec: specToSave, is_public: true }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.id) throw new Error(data.error || "Save failed");
+    setCurrentId(data.id);
+    sessionStorage.setItem("currentSim", JSON.stringify({ ...specToSave, id: data.id }));
+    if (id === "current") router.replace(`/sim/${data.id}`);
+    return `${window.location.origin}/sim/${data.id}`;
+  }
+
   async function handleSave() {
     if (!spec) return;
     setSaveLoading(true);
     setSaveSuccess(null);
-
-    // Save spec with current active parameters embedded as defaults
-    const specToSave: SimSpec = {
-      ...spec,
-      controls: spec.controls.map((c) => ({
-        ...c,
-        default: params[c.id] !== undefined ? params[c.id] : c.default,
-      })),
-    };
-
+    setActionError(null);
     try {
-      const res = await fetch("/api/sims", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: spec.title,
-          query: spec.description,
-          spec: specToSave,
-          is_public: true,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Save failed");
-
-      setCurrentId(data.id);
-      setSaveSuccess("Simulation saved to Gallery!");
-      sessionStorage.setItem("currentSim", JSON.stringify({ ...specToSave, id: data.id }));
-      // Transition URL if currently at /sim/current
-      if (id === "current") {
-        router.replace(`/sim/${data.id}`);
-      }
-    } catch (err: any) {
-      alert("Failed to save simulation: " + err.message);
+      await persistSimulation();
+      setSaveSuccess("Saved to your public gallery.");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not save this simulation.");
     } finally {
       setSaveLoading(false);
     }
   }
 
-  // Handle Share
   async function handleShare() {
-    let targetUrl = window.location.href;
-
-    // If unsaved /sim/current, save first to get permanent shareable ID
-    if (!currentId || id === "current") {
-      setSaveLoading(true);
-      try {
-        const specToSave: SimSpec = {
-          ...spec!,
-          controls: spec!.controls.map((c) => ({
-            ...c,
-            default: params[c.id] !== undefined ? params[c.id] : c.default,
-          })),
-        };
-        const res = await fetch("/api/sims", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: spec!.title,
-            query: spec!.description,
-            spec: specToSave,
-            is_public: true,
-          }),
-        });
-        const data = await res.json();
-        if (data.id) {
-          setCurrentId(data.id);
-          targetUrl = `${window.location.origin}/sim/${data.id}`;
-          router.replace(`/sim/${data.id}`);
-        }
-      } catch {
-        // Fallback to current URL
-      } finally {
-        setSaveLoading(false);
-      }
-    }
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: spec?.title || "SimForge Simulation",
-          text: spec?.description || "Explore this interactive simulation on SimForge",
-          url: targetUrl,
-        });
-        setShareSuccess("Shared!");
-        setTimeout(() => setShareSuccess(null), 3000);
-        return;
-      } catch {
-        // User cancelled or share failed, fallback to clipboard
-      }
-    }
-
+    if (!spec) return;
+    setSaveLoading(true);
+    setShareSuccess(null);
+    setActionError(null);
     try {
+      let targetUrl = window.location.href;
+      if (!currentId || id === "current") targetUrl = await persistSimulation();
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: spec.title, text: spec.description, url: targetUrl });
+          setShareSuccess("Shared successfully.");
+          return;
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") return;
+        }
+      }
       await navigator.clipboard.writeText(targetUrl);
-      setShareSuccess("Link copied to clipboard!");
-      setTimeout(() => setShareSuccess(null), 3000);
-    } catch {
-      prompt("Copy simulation link:", targetUrl);
+      setShareSuccess("Link copied to clipboard.");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not share this simulation.");
+    } finally {
+      setSaveLoading(false);
+      window.setTimeout(() => setShareSuccess(null), 3000);
     }
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading simulation...</p>
-        </div>
-      </main>
+  function handleReset() {
+    if (!spec) return;
+    const defaults: Record<string, ParamValue> = Object.fromEntries(
+      spec.controls.map((control) => [control.id, control.default])
     );
+    const resetControl = spec.controls.find((control) => control.id === "reset");
+    if (resetControl) {
+      defaults.reset = true;
+      window.setTimeout(() => setParams((current) => ({ ...current, reset: false })), 100);
+    }
+    setParams(defaults);
   }
 
-  if (error || !spec) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-xl mb-4">{error || "Simulation not found."}</p>
-          <a href="/create" className="px-4 py-2 bg-blue-600 rounded-lg">Create New</a>
-        </div>
-      </main>
-    );
+  function togglePlayback() {
+    setParams((current) => ({ ...current, paused: !Boolean(current.paused) }));
   }
+
+  if (loading) return (
+    <main className="mx-auto flex min-h-[70vh] max-w-7xl items-center justify-center px-6">
+      <div className="text-center">
+        <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-300" />
+        <p className="text-sm text-slate-400">Preparing your simulation…</p>
+      </div>
+    </main>
+  );
+
+  if (error || !spec) return (
+    <main className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-6">
+      <Card className="w-full p-8 text-center">
+        <FlaskConical className="mx-auto mb-4 h-8 w-8 text-indigo-300" />
+        <h1 className="text-xl font-semibold text-slate-100">Simulation unavailable</h1>
+        <p className="mt-2 text-sm text-slate-400">{error || "Simulation not found."}</p>
+        <Link href="/create" className="mt-6 inline-flex"><Button>Create a simulation</Button></Link>
+      </Card>
+    </main>
+  );
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Navigation & Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5 text-xs text-slate-400">
-              <a href="/" className="hover:text-white transition">← Home</a>
-              <span className="text-slate-600">/</span>
-              <a href="/gallery" className="hover:text-white transition">Gallery</a>
-              <span className="text-slate-600">/</span>
-              <span className="text-slate-300 font-mono">
-                {currentId ? `sim/${currentId.slice(0, 8)}...` : "current"}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">{spec.title}</h1>
-              <span className="px-2 py-0.5 bg-blue-900/40 text-blue-400 text-xs font-semibold rounded uppercase tracking-wider border border-blue-800/40">
-                {spec.template || spec.domain}
-              </span>
-            </div>
-            <p className="text-slate-400 mt-1 text-sm max-w-3xl">{spec.description}</p>
+    <main className="mx-auto min-h-screen max-w-[1440px] px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
+            <Link href="/gallery" className="inline-flex items-center gap-1 transition hover:text-slate-200"><ArrowLeft size={13} /> Gallery</Link>
+            <span>/</span><span className="font-mono">{currentId ? currentId.slice(0, 8) : "unsaved"}</span>
           </div>
-
-          {/* Action buttons: Save & Share */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={handleSave}
-              disabled={saveLoading}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 rounded-lg text-sm font-medium transition flex items-center gap-1.5"
-            >
-              <span>💾</span>
-              <span>{saveLoading ? "Saving..." : "Save Simulation"}</span>
-            </button>
-            <button
-              onClick={handleShare}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition flex items-center gap-1.5"
-            >
-              <span>🔗</span>
-              <span>Share</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">{spec.title}</h1>
+            <Badge className="capitalize text-indigo-200">{spec.domain}</Badge>
           </div>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{spec.description}</p>
         </div>
-
-        {/* Save/Share success notifications */}
-        {saveSuccess && (
-          <div className="p-3 bg-green-950/40 border border-green-700 rounded-lg text-green-300 text-sm flex items-center justify-between">
-            <span>✅ {saveSuccess}</span>
-            <button onClick={() => setSaveSuccess(null)} className="text-green-500 hover:text-green-300">✕</button>
-          </div>
-        )}
-        {shareSuccess && (
-          <div className="p-3 bg-cyan-950/40 border border-cyan-700 rounded-lg text-cyan-300 text-sm flex items-center justify-between">
-            <span>📋 {shareSuccess}</span>
-            <button onClick={() => setShareSuccess(null)} className="text-cyan-500 hover:text-cyan-300">✕</button>
-          </div>
-        )}
-
-        {/* Primary Simulation Area: Canvas & Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <Sandbox spec={spec} params={params} />
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 mb-4 pb-2 border-b border-slate-800">
-              Interactive Controls
-            </h3>
-            <Controls
-              controls={spec.controls}
-              values={params}
-              onChange={(cid, v) => setParams((prev) => ({ ...prev, [cid]: v }))}
-            />
-          </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" onClick={handleSave} disabled={saveLoading} aria-label="Save simulation">
+            <Save size={15} /> <span className="hidden sm:inline">{saveLoading ? "Saving…" : "Save"}</span>
+          </Button>
+          <Button onClick={handleShare} disabled={saveLoading} aria-label="Share simulation">
+            <Share2 size={15} /> <span className="hidden sm:inline">Share</span>
+          </Button>
         </div>
-
-        {/* Live Physical Data Panel */}
-        <DataPanel spec={spec} params={params} />
-
-        {/* Live Telemetry Graph */}
-        <GraphPanel spec={spec} params={params} />
-
-        {/* Modify with AI / Remix Panel */}
-        <ModifyPanel
-          spec={spec}
-          currentParams={params}
-          onApplyModification={handleApplyModification}
-        />
-
-        {/* Comprehensive Learn Section (Explanations, Variables, Equations, Socratic Questions, Challenge) */}
-        <LearnSection spec={spec} params={params} />
       </div>
+
+      {actionError && <div role="alert" className="mb-5 rounded-xl border border-rose-300/15 bg-rose-300/[.06] px-4 py-3 text-sm text-rose-200">{actionError}</div>}
+      {(saveSuccess || shareSuccess) && (
+        <div role="status" className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[.06] px-4 py-3 text-sm text-emerald-200">
+          {shareSuccess?.includes("copied") ? <Copy size={15} /> : <Check size={15} />}{shareSuccess || saveSuccess}
+        </div>
+      )}
+
+      <section className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.75fr)_minmax(300px,.8fr)]" aria-label="Simulation workspace">
+        <Card className="overflow-hidden p-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[.07] px-4 py-3 sm:px-5">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.5)]" />Live simulation</div>
+            <div className="flex items-center gap-2">
+              {"paused" in params && <Button variant="ghost" size="sm" onClick={togglePlayback} aria-label={params.paused ? "Resume simulation" : "Pause simulation"}>{params.paused ? <Play size={15} /> : <Pause size={15} />}<span className="hidden sm:inline">{params.paused ? "Resume" : "Pause"}</span></Button>}
+              <Button variant="ghost" size="sm" onClick={handleReset} aria-label="Reset simulation"><RotateCcw size={15} /><span className="hidden sm:inline">Reset</span></Button>
+            </div>
+          </div>
+          <div className="sim-canvas-wrap p-2 sm:p-3"><Sandbox spec={spec} params={params} /></div>
+          <div className="flex items-center justify-between border-t border-white/[.06] px-4 py-2.5 text-[11px] text-slate-500 sm:px-5">
+            <span>Adjust a parameter to explore how the system responds.</span>
+            <span className="hidden font-mono sm:inline">{spec.template}</span>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6">
+          <div className="mb-5 flex items-center justify-between border-b border-white/[.07] pb-4">
+            <div><p className="text-[11px] font-medium uppercase tracking-[.16em] text-slate-500">Experiment setup</p><h2 className="mt-1 text-base font-semibold text-slate-100">Parameters</h2></div>
+            <FlaskConical size={17} className="text-indigo-300" />
+          </div>
+          <Controls controls={spec.controls.filter((control) => control.id !== "paused" && control.id !== "reset")} values={params} onChange={(cid, value) => setParams((prev) => ({ ...prev, [cid]: value }))} />
+        </Card>
+      </section>
+
+      {spec.challenge && <section className="mt-5"><ChallengeMode challenge={spec.challenge} params={params} spec={spec} /></section>}
+
+      <section className="mt-5" aria-label="Live data"><DataPanel spec={spec} params={params} /></section>
+      <section className="mt-5" aria-label="Simulation graph"><GraphPanel spec={spec} params={params} /></section>
+      <section className="mt-5" aria-label="Modify simulation"><ModifyPanel spec={spec} currentParams={params} onApplyModification={handleApplyModification} /></section>
+      {spec.socraticQuestions?.length > 0 && <section className="mt-5"><Card><div className="mb-4 flex items-center gap-2"><Sparkles size={16} className="text-violet-300" /><h2 className="text-base font-semibold text-slate-100">Think it through</h2></div><TutorPanel questions={spec.socraticQuestions} /></Card></section>}
+      <section className="mt-5" aria-label="Learn about the simulation"><LearnSection spec={spec} /></section>
     </main>
   );
 }

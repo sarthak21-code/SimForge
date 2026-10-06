@@ -238,11 +238,11 @@ export function GraphPanel({ spec, params }: Props) {
   }, [template, params]);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+    <div className="glass rounded-2xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          Live Telemetry Graph
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-300" />
+          Simulation graph
         </h3>
         <span className="text-xs text-slate-500 font-mono">Real-time Stream</span>
       </div>
@@ -250,6 +250,8 @@ export function GraphPanel({ spec, params }: Props) {
         ref={canvasRef}
         width={700}
         height={190}
+        aria-label={`${spec.title} live graph`}
+        role="img"
         className="w-full rounded bg-slate-950 border border-slate-800"
       />
     </div>
