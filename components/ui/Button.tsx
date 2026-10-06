@@ -8,7 +8,7 @@ const variants: Record<Variant, string> = {
   primary: "btn-glow text-white",
   ghost: "text-slate-300 hover:bg-white/5",
   outline:
-    "border border-white/10 hover:border-white/25 text-slate-200 hover:bg-white/5",
+    "border border-white/15 bg-white/[.03] text-slate-200 backdrop-blur-md hover:border-indigo-300/40 hover:bg-white/[.07]",
 };
 
 const sizes: Record<Size, string> = {
@@ -16,6 +16,23 @@ const sizes: Record<Size, string> = {
   md: "px-4 py-2.5 text-sm rounded-xl",
   lg: "px-6 py-3.5 text-base rounded-xl",
 };
+
+/**
+ * Shared class recipe. Use it directly on a <Link> to get button styling
+ * without nesting a <button> inside an anchor (invalid HTML, poor a11y).
+ */
+export function buttonStyles({
+  variant = "primary",
+  size = "md",
+  className,
+}: { variant?: Variant; size?: Size; className?: string } = {}) {
+  return cn(
+    "inline-flex items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none",
+    variants[variant],
+    sizes[size],
+    className
+  );
+}
 
 export const Button = forwardRef<
   HTMLButtonElement,
@@ -26,12 +43,7 @@ export const Button = forwardRef<
 >(({ className, variant = "primary", size = "md", ...props }, ref) => (
   <button
     ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 disabled:pointer-events-none",
-      variants[variant],
-      sizes[size],
-      className
-    )}
+    className={buttonStyles({ variant, size, className })}
     {...props}
   />
 ));
