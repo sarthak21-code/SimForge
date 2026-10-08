@@ -325,6 +325,7 @@ export const orbitTemplate: SimSpec = {
       prompt:
         "Why does increasing the planet's mass NOT change the velocity required for a circular orbit?",
       type: "open",
+      answer: "It does not change; circular orbital velocity depends on the central mass and orbital radius, not the planet's mass.",
       explanation:
         "Orbital velocity v = √(GM/r) depends only on the central mass M and distance r. The planet's mass m cancels out because gravitational force (F = GMm/r²) and inertial resistance (F = ma) both scale with m.",
     },

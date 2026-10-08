@@ -98,10 +98,22 @@ export function GraphPanel({ spec, params }: Props) {
         sampleY = d0 * (1 + eccFactor * Math.sin(t * 1.8));
         maxY = Math.max(150, d0 * 1.8);
         minY = Math.max(0, d0 * 0.4);
+      } else if (template === "circuit") {
+        xLabel = "Time (s)";
+        yLabel = "Capacitor voltage (V)";
+        graphTitle = "Capacitor Voltage vs. Time";
+        const resistance = Math.max(0, Number(params.resistance ?? 1000));
+        const capacitance = Math.max(0, Number(params.capacitance ?? 0.001));
+        const voltage = Math.max(0, Number(params.voltage ?? 10));
+        const selectedTime = Math.max(0, Number(params.time ?? 0));
+        const tau = resistance * capacitance;
+        sampleY = tau > 0 ? voltage * (1 - Math.exp(-selectedTime / tau)) : selectedTime > 0 ? voltage : 0;
+        maxY = Math.max(voltage, 1);
+        minY = 0;
       }
 
       // Record point periodically
-      if (template !== "wave" && !isPaused) {
+      if (template !== "wave" && template !== "circuit" && !isPaused) {
         dataHistoryRef.current.push({ x: t, y: sampleY });
         if (dataHistoryRef.current.length > 200) {
           dataHistoryRef.current.shift();
@@ -181,7 +193,37 @@ export function GraphPanel({ spec, params }: Props) {
       ctx.lineWidth = 2.5;
       ctx.beginPath();
 
-      if (template === "wave") {
+      if (template === "circuit") {
+        const resistance = Math.max(0, Number(params.resistance ?? 1000));
+        const capacitance = Math.max(0, Number(params.capacitance ?? 0.001));
+        const voltage = Math.max(0, Number(params.voltage ?? 10));
+        const selectedTime = Math.max(0, Number(params.time ?? 0));
+        const tau = resistance * capacitance;
+        const safeTau = Math.max(tau, 1e-12);
+        const duration = Math.max(tau * 5, 0.01);
+        const voltageScale = Math.max(voltage, 1);
+
+        for (let i = 0; i <= 100; i++) {
+          const time = (i / 100) * duration;
+          const value = tau > 0 ? voltage * (1 - Math.exp(-time / safeTau)) : time > 0 ? voltage : 0;
+          const x = padL + (i / 100) * plotW;
+          const y = padT + (1 - value / voltageScale) * plotH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        const clampedTime = Math.min(selectedTime, duration);
+        const currentVoltage = tau > 0
+          ? voltage * (1 - Math.exp(-selectedTime / safeTau))
+          : selectedTime > 0 ? voltage : 0;
+        const pointX = padL + (clampedTime / duration) * plotW;
+        const pointY = padT + (1 - currentVoltage / voltageScale) * plotH;
+        ctx.fillStyle = "#fb7185";
+        ctx.beginPath();
+        ctx.arc(pointX, pointY, 4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (template === "wave") {
         // Draw spatial snapshot of the wave
         const amp = Number(params.amplitude || 80);
         const freq = Number(params.frequency || 1);
@@ -236,6 +278,26 @@ export function GraphPanel({ spec, params }: Props) {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
   }, [template, params]);
+
+  if (template === "custom") {
+    if (spec.graphs.length === 0) return null;
+    return (
+      <div className="glass rounded-2xl p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Simulation graphs</h3>
+          <span className="text-xs text-slate-500 font-mono">Declared axes</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {spec.graphs.map((graph) => (
+            <div key={graph.id} className="rounded-xl border border-white/[.06] bg-slate-950/45 p-3">
+              <p className="text-sm font-medium text-slate-200">{graph.label}</p>
+              <p className="mt-1 text-xs text-slate-400">{graph.xLabel} · {graph.yLabel}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="glass rounded-2xl p-4 sm:p-5">

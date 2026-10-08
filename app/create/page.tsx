@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Sparkles, Command, Loader2 } from "lucide-react";
+import { ensureAnonymousSession } from "@/lib/supabase/client";
 
 const EXAMPLES = [
   "Projectile motion with air resistance",
@@ -26,9 +27,10 @@ export default function CreatePage() {
     setLoading(true);
     setError(null);
     try {
+      const session = await ensureAnonymousSession();
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ query }),
       });
       const sim = await res.json();

@@ -1,18 +1,20 @@
 "use client";
-import { SimSpec } from "@/lib/ai/schema";
+import type { SimSpec } from "@/lib/ai/schema";
+import { getCustomLearningData } from "../lib/ai/learning";
 
 type Props = {
   spec: SimSpec;
+  params: Record<string, number | boolean | string>;
 };
 
-export function LearnSection({ spec }: Props) {
+export function LearnSection({ spec, params }: Props) {
   const template = spec.template;
 
   const educationalData: Record<
     string,
     {
       shortExplanation: string;
-      variables: { symbol: string; name: string; meaning: string }[];
+      variables: { symbol: string; name: string; meaning?: string; value?: string }[];
       equations: { name: string; formula: string; note: string }[];
       whatIsHappening: string;
     }
@@ -127,9 +129,25 @@ export function LearnSection({ spec }: Props) {
       whatIsHappening:
         "The planet constantly 'falls' towards the star due to gravitational acceleration, but its tangential velocity causes it to perpetually miss the star, creating a closed elliptical or circular orbit.",
     },
+    circuit: {
+      shortExplanation: "An RC circuit charges a capacitor through a resistor, with the response set by the resistance-capacitance time constant.",
+      variables: [
+        { symbol: "R", name: "Resistance", meaning: "Opposition to current flow" },
+        { symbol: "C", name: "Capacitance", meaning: "Charge stored per unit voltage" },
+        { symbol: "τ", name: "Time Constant", meaning: "Characteristic charging time, equal to resistance times capacitance" },
+      ],
+      equations: [
+        { name: "Time Constant", formula: "τ = R · C", note: "After one time constant, the capacitor reaches about 63% of its final voltage." },
+        { name: "Charging Voltage", formula: "V_C(t) = V(1 − e^(−t/(RC)))", note: "The capacitor voltage approaches the supply voltage over time." },
+      ],
+      whatIsHappening: "Current decreases as the capacitor charges; the rate is governed by the RC time constant.",
+    },
   };
 
-  const edu = educationalData[template] || educationalData.projectile;
+  const edu = template === "custom" || template === "supply-demand"
+    ? getCustomLearningData(spec, params)
+    : educationalData[template];
+  if (!edu) return null;
 
   return (
       <div className="glass rounded-2xl p-5 space-y-6 sm:p-6">
@@ -144,9 +162,9 @@ export function LearnSection({ spec }: Props) {
       </div>
 
       {/* Variables and Equations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {(edu.variables.length > 0 || edu.equations.length > 0) && <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Variables */}
-        <div className="rounded-xl border border-white/[.07] bg-slate-950/40 p-4">
+        {edu.variables.length > 0 && <div className="rounded-xl border border-white/[.07] bg-slate-950/40 p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
             Key Variables
           </h3>
@@ -156,17 +174,26 @@ export function LearnSection({ spec }: Props) {
                 <span className="px-1.5 py-0.5 rounded bg-blue-900/40 text-blue-300 font-mono font-bold shrink-0">
                   {v.symbol}
                 </span>
-                <div>
-                  <span className="font-semibold text-slate-200">{v.name}:</span>{" "}
-                  <span className="text-slate-400">{v.meaning}</span>
+                <div className="min-w-0 flex-1">
+                  {v.value !== undefined ? (
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <span className="font-semibold text-slate-200">{v.name}</span>
+                      <span className="font-mono text-sm font-medium text-indigo-200">{v.value}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-slate-200">{v.name}:</span>{" "}
+                      {v.meaning && <span className="text-slate-400">{v.meaning}</span>}
+                    </>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
-        </div>
+        </div>}
 
         {/* Equations */}
-        <div className="rounded-xl border border-white/[.07] bg-slate-950/40 p-4">
+        {edu.equations.length > 0 && <div className="rounded-xl border border-white/[.07] bg-slate-950/40 p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
             Governing Equations
           </h3>
@@ -181,18 +208,18 @@ export function LearnSection({ spec }: Props) {
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </div>}
+      </div>}
 
       {/* What is happening description */}
-      <div className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.035] p-4">
+      {edu.whatIsHappening && <div className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.035] p-4">
         <h3 className="text-sm font-semibold text-blue-300 mb-1 flex items-center gap-1.5">
           <span className="text-cyan-300">↳</span> What is happening in this simulation?
         </h3>
         <p className="text-xs text-slate-300 leading-relaxed">
           {edu.whatIsHappening}
         </p>
-      </div>
+      </div>}
 
     </div>
   );

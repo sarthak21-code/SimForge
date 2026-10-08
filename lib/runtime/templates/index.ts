@@ -3,6 +3,7 @@ import { projectileTemplate } from "./projectile";
 import { pendulumTemplate } from "./pendulum";
 import { waveTemplate } from "./wave";
 import { orbitTemplate } from "./orbit";
+import { circuitTemplate } from "./circuit";
 
 export function extractParameters(
   template: string,
@@ -299,6 +300,20 @@ export function extractParameters(
     } else if (q.includes("fast forward") || q.includes("speed up") || q.includes("faster time")) {
       overrides.timeScale = 2.5;
     }
+  } else if (template === "circuit") {
+    const resistance = findNumber(/(?:resistance|resistor|\bR\b)\s*(?:to|of|at|=)?\s*(\d+(?:\.\d+)?)\s*(?:ohms?|Ω)?/i);
+    const capacitance = findNumber(/(?:capacitance|capacitor|\bC\b)\s*(?:to|of|at|=)?\s*(\d+(?:\.\d+)?)\s*(?:mF|uF|μF|µF|nF|F)?/i);
+    const voltage = findNumber(/(?:supply\s+)?voltage\s*(?:to|of|at|=)?\s*(\d+(?:\.\d+)?)\s*V?/i);
+    const time = findNumber(/(?:time|t)\s*(?:to|of|at|=)?\s*(\d+(?:\.\d+)?)\s*s(?:ec(?:ond)?s?)?\b/i);
+
+    if (resistance !== null) overrides.resistance = resistance;
+    if (capacitance !== null) {
+      const unit = q.match(/(?:capacitance|capacitor|\bC\b)\s*(?:to|of|at|=)?\s*\d+(?:\.\d+)?\s*(mF|uF|μF|µF|nF|F)\b/i)?.[1]?.toLowerCase();
+      const factor = unit === "mf" ? 0.001 : unit === "uf" || unit === "μf" || unit === "µf" ? 0.000001 : unit === "nf" ? 0.000000001 : 1;
+      overrides.capacitance = capacitance * factor;
+    }
+    if (voltage !== null) overrides.voltage = voltage;
+    if (time !== null) overrides.time = time;
   }
 
   return overrides;
@@ -311,13 +326,16 @@ export function applyParamOverrides(
   if (Object.keys(overrides).length === 0) return spec;
 
   const newControls = spec.controls.map((ctrl) => {
-    if (overrides[ctrl.id] !== undefined) {
-      let val = overrides[ctrl.id];
-      if (ctrl.type === "slider" && typeof val === "number") {
-        if (ctrl.min !== undefined) val = Math.max(ctrl.min, val);
-        if (ctrl.max !== undefined) val = Math.min(ctrl.max, val);
-      }
-      return { ...ctrl, default: val };
+    const value = overrides[ctrl.id];
+    if (ctrl.type === "slider" && typeof value === "number") {
+      const bounded = Math.max(ctrl.min, Math.min(ctrl.max, value));
+      return { ...ctrl, default: bounded };
+    }
+    if (ctrl.type === "toggle" && typeof value === "boolean") {
+      return { ...ctrl, default: value };
+    }
+    if (ctrl.type === "dropdown" && typeof value === "string" && ctrl.options.includes(value)) {
+      return { ...ctrl, default: value };
     }
     return ctrl;
   });
@@ -332,15 +350,24 @@ export function getTemplateFallback(query: string): SimSpec {
   const q = query.toLowerCase();
   let baseSpec: SimSpec;
 
-  if (
-    q.includes("orbit") ||
-    q.includes("orbital") ||
-    q.includes("planet") ||
-    q.includes("satellite") ||
-    q.includes("gravity") ||
-    q.includes("earth around sun")
-  ) {
+  const isOrbitPrompt =
+    /\b(?:orbits?|orbital|orbiting)\b/.test(q) ||
+    /\bearth\s+around\s+(?:the\s+)?sun\b/.test(q);
+  const describesLaunchedBall =
+    /\bball\b.{0,40}\b(launch(?:ed|es|ing)?|throw(?:n|s|ing)?)\b/.test(q) ||
+    /\b(launch(?:ed|es|ing)?|throw(?:n|s|ing)?)\b.{0,40}\bball\b/.test(q);
+  const hasProjectileIntent =
+    /\bprojectiles?\b/.test(q) ||
+    /\bballistic\b/.test(q) ||
+    describesLaunchedBall ||
+    (/\binitial\s+velocity\b/.test(q) && /\b(?:launch|initial)\s+angle\b/.test(q));
+
+  if (/\b(rc(?:\s*circuit)?|circuit|capacitor|resistor)\b/.test(q)) {
+    baseSpec = circuitTemplate;
+  } else if (isOrbitPrompt) {
     baseSpec = orbitTemplate;
+  } else if (hasProjectileIntent) {
+    baseSpec = projectileTemplate;
   } else if (
     q.includes("wave") ||
     q.includes("sine") ||
@@ -352,14 +379,10 @@ export function getTemplateFallback(query: string): SimSpec {
     q.includes("amplitude")
   ) {
     baseSpec = waveTemplate;
-  } else if (q.includes("pendulum") || q.includes("oscillat") || q.includes("swing")) {
+  } else if (/\bpendulum\b/.test(q)) {
     baseSpec = pendulumTemplate;
-  } else if (q.includes("supply") || q.includes("demand") || q.includes("economics") || q.includes("market")) {
-    baseSpec = projectileTemplate; // fallback until supply-demand template is built
-  } else if (q.includes("projectile") || q.includes("launch") || q.includes("throw") || q.includes("motion")) {
-    baseSpec = projectileTemplate;
   } else {
-    baseSpec = projectileTemplate;
+    throw new Error("No built-in fallback is available for this concept; AI-generated custom simulation code is required.");
   }
 
   const overrides = extractParameters(baseSpec.template, q);

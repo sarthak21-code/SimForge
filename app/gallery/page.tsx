@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { ensureAnonymousSession } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { SIMULATION_DOMAINS } from "@/lib/ai/domains";
 import { Button } from "@/components/ui/Button";
-import { Plus, Search, Sparkles } from "lucide-react";
+import { Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SimRow = {
@@ -14,9 +15,10 @@ type SimRow = {
   query?: string;
   spec: { domain: string; description: string };
   created_at: string;
+  is_owner?: boolean;
 };
 
-const DOMAINS = ["all", "physics", "math", "cs", "economics", "cybersecurity", "sustainability"];
+const DOMAINS = ["all", ...SIMULATION_DOMAINS];
 
 export default function Gallery() {
   const [sims, setSims] = useState<SimRow[]>([]);
@@ -24,18 +26,23 @@ export default function Gallery() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadGallery() {
       try {
-        const { data, error } = await supabase
-          .from("sims")
-          .select("id, title, query, spec, created_at")
-          .eq("is_public", true)
-          .order("created_at", { ascending: false })
-          .limit(60);
-        if (error) throw error;
-        setSims((data as SimRow[]) || []);
+        let token: string | undefined;
+        try {
+          token = (await ensureAnonymousSession()).access_token;
+        } catch {
+          // Public gallery access remains available if anonymous auth is unavailable.
+        }
+        const response = await fetch("/api/sims?limit=60", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (!response.ok) throw new Error("Gallery request failed");
+        setSims((await response.json()) as SimRow[]);
       } catch {
         setLoadError("The gallery could not be loaded. Please try again shortly.");
       } finally {
@@ -44,6 +51,25 @@ export default function Gallery() {
     }
     loadGallery();
   }, []);
+
+  async function deleteSimulation(sim: SimRow) {
+    if (deletingId || !window.confirm("Delete this simulation?\nThis cannot be undone.")) return;
+    setDeleteError(null);
+    setDeletingId(sim.id);
+    try {
+      const session = await ensureAnonymousSession();
+      const response = await fetch(`/api/sims/${encodeURIComponent(sim.id)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!response.ok) throw new Error("Delete failed");
+      setSims((current) => current.filter((item) => item.id !== sim.id));
+    } catch {
+      setDeleteError("This simulation could not be deleted. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = sims.filter((sim) =>
@@ -111,6 +137,8 @@ export default function Gallery() {
           <Card role="alert" className="mb-5 border-rose-400/20 text-center text-sm text-rose-200">{loadError}</Card>
         )}
 
+        {deleteError && <Card role="alert" className="mb-5 border-rose-400/20 text-sm text-rose-200">{deleteError}</Card>}
+
         {!loading && !loadError && filtered.length === 0 && (
           <Card className="text-center py-16">
             <p className="text-slate-400">
@@ -126,8 +154,8 @@ export default function Gallery() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((s) => (
-            <Link key={s.id} href={`/sim/${s.id}`} aria-label={`Open ${s.title}`}>
-              <Card className="group h-full transition-all hover:border-white/20 hover:-translate-y-1 cursor-pointer">
+            <Card key={s.id} className="group h-full transition-all hover:border-white/20 hover:-translate-y-1">
+              <Link href={`/sim/${s.id}`} aria-label={`Open ${s.title}`} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">
                 <Badge className="mb-3 capitalize">{s.spec?.domain ?? "unknown"}</Badge>
                 <h3 className="text-lg font-semibold text-slate-100 group-hover:text-white transition-colors">
                   {s.title}
@@ -136,8 +164,20 @@ export default function Gallery() {
                   {s.spec?.description}
                 </p>
                 <p className="mt-5 border-t border-white/[.06] pt-3 text-[11px] text-slate-500">{new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
-              </Card>
-            </Link>
+              </Link>
+              {s.is_owner && (
+                <button
+                  type="button"
+                  aria-label={`Delete ${s.title}`}
+                  onClick={() => deleteSimulation(s)}
+                  disabled={deletingId === s.id}
+                  className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-300/20 px-3 text-sm text-rose-200 transition hover:bg-rose-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {deletingId === s.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                  {deletingId === s.id ? "Deleting…" : "Delete"}
+                </button>
+              )}
+            </Card>
           ))}
         </div>
       </div>

@@ -54,6 +54,7 @@ export const projectileTemplate: SimSpec = {
     {
       prompt: "If you double the velocity, what happens to the range?",
       type: "open",
+      answer: "The range becomes four times larger.",
       explanation: "Range is proportional to v², so doubling velocity quadruples the range.",
     },
   ],

@@ -42,7 +42,11 @@ export function ModifyPanel({ spec, currentParams, onApplyModification }: Props)
     "Slow motion",
   ],
 } as Record<string, string[]>)[spec.template] || [
-  "Double speed",
+  ...spec.controls.slice(0, 3).flatMap((control) => {
+    if (control.type === "slider") return [`Increase ${control.label}`, `Set ${control.label} to ${control.default}`];
+    if (control.type === "toggle") return [`Toggle ${control.label}`];
+    return [`Set ${control.label} to ${control.options[0]}`];
+  }),
   "Reset simulation",
   "Pause",
 ];
@@ -83,7 +87,7 @@ export function ModifyPanel({ spec, currentParams, onApplyModification }: Props)
         setPrompt("");
       } else {
         setFeedback({
-          text: data.message || "No parameter matched your request. Try e.g. 'Double gravity' or 'Angle to 60'.",
+          text: data.message || "No matching control change was found. Try using a control label from this simulation.",
           type: "info",
         });
       }
@@ -117,7 +121,7 @@ export function ModifyPanel({ spec, currentParams, onApplyModification }: Props)
           onKeyDown={(e) => {
             if (e.key === "Enter") handleModify();
           }}
-          placeholder="e.g. 'Double gravity', 'Increase angle to 60°', 'Pause'..."
+          placeholder={spec.controls[0] ? `e.g. "Increase ${spec.controls[0].label}" or "Set ${spec.controls[0].label} to …"` : "Describe a simulation change…"}
           className="min-h-11 flex-1 rounded-xl border border-white/10 bg-slate-950/65 px-3.5 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-indigo-400/50"
         />
         <button

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { SimSpec } from "@/lib/ai/schema";
+import { formatControlValue } from "../lib/ai/learning";
 
 type Props = {
   spec: SimSpec;
@@ -9,6 +10,14 @@ type Props = {
 
 export function DataPanel({ spec, params }: Props) {
   const [metrics, setMetrics] = useState<Record<string, string>>({});
+
+  const customMetrics = (spec.template === "custom" || spec.template === "supply-demand")
+    ? Object.fromEntries(spec.controls.map((control) => {
+        const value = params[control.id] ?? control.default;
+        const formatted = formatControlValue(control, value);
+        return [control.label, formatted];
+      }))
+    : null;
 
   useEffect(() => {
     const template = spec.template;
@@ -94,8 +103,29 @@ export function DataPanel({ spec, params }: Props) {
         "Orbital Status": status,
         "Time Scale": `${params.timeScale || 1.0}×`,
       });
+    } else if (template === "circuit") {
+      const resistance = Number(params.resistance ?? 1000);
+      const capacitance = Number(params.capacitance ?? 0.001);
+      const voltage = Number(params.voltage ?? 10);
+      const time = Math.max(0, Number(params.time ?? 0));
+      const tau = Math.max(0, resistance * capacitance);
+      const capacitorVoltage = tau > 0
+        ? voltage * (1 - Math.exp(-time / tau))
+        : time > 0 ? voltage : 0;
+
+      setMetrics({
+        "Time Constant (τ = RC)": `${tau.toFixed(4)} s`,
+        "Capacitor Voltage": `${capacitorVoltage.toFixed(3)} V`,
+        Resistance: `${resistance.toLocaleString()} Ω`,
+        Capacitance: `${(capacitance * 1000).toFixed(3)} mF`,
+        "Supply Voltage": `${voltage.toFixed(2)} V`,
+        Time: `${time.toFixed(2)} s`,
+      });
     }
   }, [spec.template, params]);
+
+  const displayedMetrics = customMetrics ?? metrics;
+  if ((spec.template === "custom" || spec.template === "supply-demand") && Object.keys(displayedMetrics).length === 0) return null;
 
   return (
     <div className="glass rounded-2xl p-4 sm:p-5">
@@ -107,7 +137,7 @@ export function DataPanel({ spec, params }: Props) {
         <span className="text-xs text-slate-500">Live Telemetry</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {Object.entries(metrics).map(([key, val]) => (
+        {Object.entries(displayedMetrics).map(([key, val]) => (
           <div key={key} className="min-w-0 rounded-xl border border-white/[.06] bg-slate-950/45 p-3">
             <p className="text-[11px] text-slate-400 truncate">{key}</p>
             <p className="mt-1 truncate font-mono text-sm font-medium text-indigo-200">{val}</p>

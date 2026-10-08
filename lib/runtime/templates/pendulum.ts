@@ -62,6 +62,7 @@ export const pendulumTemplate: SimSpec = {
     {
       prompt: "Why does changing mass NOT affect the period?",
       type: "open",
+      answer: "Mass does not affect the period; only length and gravity determine it.",
       explanation: "The restoring force and inertia both scale with mass, so they cancel out. Only L and g determine the period.",
     },
   ],

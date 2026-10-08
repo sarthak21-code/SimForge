@@ -162,6 +162,7 @@ export const waveTemplate: SimSpec = {
       prompt:
         "If you double the frequency while keeping wavelength constant, what happens to wave speed?",
       type: "open",
+      answer: "The wave speed doubles.",
       explanation:
         "Speed doubles. Since v = fλ and λ is unchanged, doubling f doubles v.",
     },

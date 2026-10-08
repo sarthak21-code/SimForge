@@ -10,11 +10,14 @@ import { GraphPanel } from "@/components/GraphPanel";
 import { DataPanel } from "@/components/DataPanel";
 import { ModifyPanel } from "@/components/ModifyPanel";
 import { LearnSection } from "@/components/LearnSection";
-import { ChallengeMode } from "@/components/ChallengeMode";
+import { ChallengeSection } from "@/components/ChallengeSection";
+import { AITutorSection } from "@/components/AITutorSection";
 import { TutorPanel } from "@/components/TutorPanel";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { getRestartedSimulation } from "@/lib/runtime/simulation-restart";
+import { ensureAnonymousSession } from "@/lib/supabase/client";
 
 type ParamValue = number | boolean | string;
 
@@ -23,6 +26,7 @@ export default function SimPage() {
   const router = useRouter();
   const [spec, setSpec] = useState<SimSpec | null>(null);
   const [params, setParams] = useState<Record<string, ParamValue>>({});
+  const [simulationRunId, setSimulationRunId] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -71,19 +75,29 @@ export default function SimPage() {
     if (!spec) return null;
     return {
       ...spec,
-      controls: spec.controls.map((control) => ({
-        ...control,
-        default: params[control.id] !== undefined ? params[control.id] : control.default,
-      })),
+      controls: spec.controls.map((control) => {
+        const value = params[control.id];
+        if (control.type === "slider" && typeof value === "number") {
+          return { ...control, default: Math.max(control.min, Math.min(control.max, value)) };
+        }
+        if (control.type === "toggle" && typeof value === "boolean") {
+          return { ...control, default: value };
+        }
+        if (control.type === "dropdown" && typeof value === "string" && control.options.includes(value)) {
+          return { ...control, default: value };
+        }
+        return control;
+      }),
     } satisfies SimSpec;
   }
 
   async function persistSimulation() {
     const specToSave = savePayload();
     if (!spec || !specToSave) throw new Error("Simulation is not ready to save.");
+    const session = await ensureAnonymousSession();
     const res = await fetch("/api/sims", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ title: spec.title, query: spec.description, spec: specToSave, is_public: true }),
     });
     const data = await res.json();
@@ -149,8 +163,22 @@ export default function SimPage() {
     setParams(defaults);
   }
 
+  function handleSimulateAgain() {
+    const restarted = getRestartedSimulation(simulationRunId, params);
+    setSimulationRunId(restarted.runId);
+    if (restarted.params !== params) setParams(restarted.params);
+  }
+
   function togglePlayback() {
     setParams((current) => ({ ...current, paused: !Boolean(current.paused) }));
+  }
+
+  function openAITutor() {
+    const tutorPanel = document.getElementById("ai-tutor-panel");
+    if (tutorPanel instanceof HTMLDetailsElement) {
+      tutorPanel.open = true;
+      tutorPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   if (loading) return (
@@ -186,6 +214,14 @@ export default function SimPage() {
             <Badge className="capitalize text-indigo-200">{spec.domain}</Badge>
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{spec.description}</p>
+          <button
+            type="button"
+            onClick={openAITutor}
+            aria-controls="ai-tutor-panel"
+            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-violet-200/20 bg-violet-300/10 px-4 py-2 text-sm font-medium text-violet-100 transition hover:border-violet-200/35 hover:bg-violet-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
+          >
+            <Sparkles size={15} /> Ask SimForge Tutor
+          </button>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button variant="outline" onClick={handleSave} disabled={saveLoading} aria-label="Save simulation">
@@ -208,12 +244,13 @@ export default function SimPage() {
         <Card className="overflow-hidden p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[.07] px-4 py-3 sm:px-5">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-200"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,.5)]" />Live simulation</div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {"paused" in params && <Button variant="ghost" size="sm" onClick={togglePlayback} aria-label={params.paused ? "Resume simulation" : "Pause simulation"}>{params.paused ? <Play size={15} /> : <Pause size={15} />}<span className="hidden sm:inline">{params.paused ? "Resume" : "Pause"}</span></Button>}
+              <Button variant="outline" size="sm" onClick={handleSimulateAgain} aria-label="Simulate Again" title="Restart with current parameters"><Play size={15} /><span>Simulate Again</span></Button>
               <Button variant="ghost" size="sm" onClick={handleReset} aria-label="Reset simulation"><RotateCcw size={15} /><span className="hidden sm:inline">Reset</span></Button>
             </div>
           </div>
-          <div className="sim-canvas-wrap p-2 sm:p-3"><Sandbox spec={spec} params={params} /></div>
+          <div className="sim-canvas-wrap p-2 sm:p-3"><Sandbox key={simulationRunId} spec={spec} params={params} /></div>
           <div className="flex items-center justify-between border-t border-white/[.06] px-4 py-2.5 text-[11px] text-slate-500 sm:px-5">
             <span>Adjust a parameter to explore how the system responds.</span>
             <span className="hidden font-mono sm:inline">{spec.template}</span>
@@ -229,13 +266,17 @@ export default function SimPage() {
         </Card>
       </section>
 
-      {spec.challenge && <section className="mt-5"><ChallengeMode challenge={spec.challenge} params={params} spec={spec} /></section>}
-
       <section className="mt-5" aria-label="Live data"><DataPanel spec={spec} params={params} /></section>
-      <section className="mt-5" aria-label="Simulation graph"><GraphPanel spec={spec} params={params} /></section>
+      <section className="mt-5" aria-label="Simulation graph"><GraphPanel key={simulationRunId} spec={spec} params={params} /></section>
+      <section className="mt-5" aria-label="Learn about the simulation"><LearnSection spec={spec} params={params} /></section>
+      {spec.socraticQuestions.length > 0 && (
+        <section className="mt-5 rounded-2xl border border-indigo-300/15 bg-indigo-300/[.03] p-4 sm:p-5" aria-label="Think About It">
+          <TutorPanel questions={spec.socraticQuestions} />
+        </section>
+      )}
+      <section className="mt-5" aria-label="AI Tutor"><AITutorSection spec={spec} params={params} /></section>
+      <section className="mt-5" aria-label="Challenge Mode"><ChallengeSection challenge={spec.challenge} params={params} spec={spec} /></section>
       <section className="mt-5" aria-label="Modify simulation"><ModifyPanel spec={spec} currentParams={params} onApplyModification={handleApplyModification} /></section>
-      {spec.socraticQuestions?.length > 0 && <section className="mt-5"><Card><div className="mb-4 flex items-center gap-2"><Sparkles size={16} className="text-violet-300" /><h2 className="text-base font-semibold text-slate-100">Think it through</h2></div><TutorPanel questions={spec.socraticQuestions} /></Card></section>}
-      <section className="mt-5" aria-label="Learn about the simulation"><LearnSection spec={spec} /></section>
     </main>
   );
 }

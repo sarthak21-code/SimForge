@@ -1,0 +1,27 @@
+warning: in the working copy of 'app/api/generate/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/modify/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/gallery/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/sim/[id]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/DataPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/GraphPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/LearnSection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ModifyPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/ai/generate.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/ai/prompt.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/ai/schema.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/runtime/Sandbox.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/runtime/templates/index.ts', LF will be replaced by CRLF the next time Git touches it
+ app/api/generate/route.ts      |  16 [32m+++++[m[31m--[m
+ app/api/modify/route.ts        |  38 [32m+++++++++[m[31m------[m
+ app/gallery/page.tsx           |   3 [32m+[m[31m-[m
+ app/sim/[id]/page.tsx          |  17 [32m+++++[m[31m--[m
+ components/DataPanel.tsx       |  33 [32m++++++++++++[m[31m-[m
+ components/GraphPanel.tsx      |  66 [32m+++++++++++++++++++++++++[m[31m-[m
+ components/LearnSection.tsx    |  35 [32m++++++++++[m[31m----[m
+ components/ModifyPanel.tsx     |  10 [32m++[m[31m--[m
+ lib/ai/generate.ts             | 101 [32m++++++++++++++++++++++++++++[m[31m-----------[m
+ lib/ai/prompt.ts               |  76 [32m++++++++++++[m[31m-----------------[m
+ lib/ai/schema.ts               | 105 [32m++++++++++++++++++++++++++++++++[m[31m---------[m
+ lib/runtime/Sandbox.tsx        |  39 [32m+++++++++++++[m[31m--[m
+ lib/runtime/templates/index.ts |  67 [32m+++++++++++++++++[m[31m---------[m
+ 13 files changed, 448 insertions(+), 158 deletions(-)

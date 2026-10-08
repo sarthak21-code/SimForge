@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateSim } from "@/lib/ai/generate";
+import { CustomGenerationUnavailableError, generateSim } from "@/lib/ai/generate";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/supabase/auth";
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getAuthenticatedUser(req);
     const { query } = await req.json();
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return NextResponse.json({ error: "Missing or empty query" }, { status: 400 });
@@ -42,6 +44,10 @@ export async function POST(req: NextRequest) {
       }, {} as Record<string, any>),
     };
 
+    // Non-browser callers (for example the existing Discord bot) may still generate
+    // simulations, but only authenticated sessions can create owned saved rows.
+    if (!user) return NextResponse.json({ ...sim, meta: structuredResponse });
+
     // Persist to Supabase so the sim gets a real ID and shows in gallery
     try {
       const { data, error } = await supabaseAdmin
@@ -51,6 +57,7 @@ export async function POST(req: NextRequest) {
           query: query.trim(),
           spec: sim,
           is_public: true,
+          owner_id: user.id,
         })
         .select("id")
         .single();
@@ -66,7 +73,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ...sim, meta: structuredResponse });
     }
   } catch (err) {
-    console.error("Generate error:", err);
+    if (err instanceof CustomGenerationUnavailableError) {
+      return NextResponse.json(
+        {
+          error: err.message,
+          code: err.code,
+          retryable: true,
+        },
+        { status: 503 }
+      );
+    }
+    console.error("Generate error:", err instanceof Error ? err.message : "Unknown generation error");
     return NextResponse.json({ error: "Failed to generate simulation" }, { status: 500 });
   }
 }
