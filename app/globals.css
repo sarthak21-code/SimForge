@@ -228,15 +228,8 @@ body {
   place-items: center;
   width: 34px;
   height: 34px;
-  color: #fff;
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1;
-  border: 1px solid rgba(216, 180, 254, .55);
-  border-radius: 10px;
-  background: linear-gradient(145deg, #c026d3 0%, #6d3bff 58%, #2f7bff 100%);
-  box-shadow: 0 0 22px rgba(124, 58, 237, .5), 0 1px 0 rgba(255, 255, 255, .35) inset;
 }
+.brand-image { display: block; width: 100%; height: 100%; object-fit: contain; }
 .site-nav { display: flex; align-items: center; gap: 12px; color: #a3abc0; font-size: 13px; }
 .site-nav a { display: inline-flex; align-items: center; gap: 5px; transition: color .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .site-nav a:hover { color: #f4f6fc; }

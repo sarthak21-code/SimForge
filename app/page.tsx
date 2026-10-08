@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Hero3D } from "@/components/Hero3D";
 import { GalleryShowcase } from "@/components/GalleryShowcase";
 import { GalleryPreview } from "@/components/GalleryPreview";
@@ -51,7 +52,7 @@ export default function Home() {
         <div className="relative z-10 mx-auto max-w-[600px] text-center lg:mx-0 lg:text-left">
           <div className="fade-up">
             <Badge className="mb-7 border-indigo-300/25 bg-indigo-300/[.06] px-3 py-1.5 text-[11px] tracking-[.04em] text-indigo-200 backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-300" />
+              <Image src="/simforge-logo.png" alt="" width={24} height={24} className="h-5 w-6 shrink-0 object-contain" />
               <span>AI-powered interactive simulations</span>
             </Badge>
           </div>
