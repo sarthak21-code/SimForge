@@ -27,6 +27,16 @@ test("Simulate Again is a visible, accessible action beside the simulation contr
   assert.match(page, /onClick=\{handleSimulateAgain\}/);
 });
 
+test("Reset restores defaults and clears the active telemetry run", () => {
+  const resetStart = page.indexOf("function handleReset() {");
+  const resetEnd = page.indexOf("\n  }", resetStart);
+  const resetHandler = page.slice(resetStart, resetEnd);
+
+  assert.ok(resetStart >= 0 && resetEnd > resetStart);
+  assert.match(resetHandler, /clearGraphTelemetry\(graphTelemetryRef\.current\)/);
+  assert.match(resetHandler, /setSimulationRunId\(\(current\) => current \+ 1\)/);
+  assert.match(resetHandler, /setParams\(defaults\)/);
+});
 test("clicking Simulate Again advances the runtime and preserves current controls", () => {
   const currentParams = { gravity: 15, bounceCoeff: 0.9, angle: 42 };
   const restarted = getRestartedSimulation(4, currentParams);
@@ -34,6 +44,7 @@ test("clicking Simulate Again advances the runtime and preserves current control
   assert.equal(restarted.params, currentParams);
   assert.deepEqual(restarted.params, { gravity: 15, bounceCoeff: 0.9, angle: 42 });
   assert.match(page, /setSimulationRunId\(restarted\.runId\)/);
+  assert.match(page, /clearGraphTelemetry\(graphTelemetryRef\.current\)/);
 });
 
 test("a paused run resumes and clears one-shot reset flags without changing controls", () => {
@@ -46,8 +57,8 @@ test("a paused run resumes and clears one-shot reset flags without changing cont
 });
 
 test("restart remounts the canvas and graph runtime, resetting local state and elapsed history", () => {
-  assert.match(page, /<Sandbox key=\{simulationRunId\} spec=\{spec\} params=\{params\} \/>/);
-  assert.match(page, /<GraphPanel key=\{simulationRunId\} spec=\{spec\} params=\{params\} \/>/);
+  assert.match(page, /<Sandbox key=\{simulationRunId\} spec=\{spec\} params=\{params\} telemetryRef=\{graphTelemetryRef\} \/>/);
+  assert.match(page, /<GraphPanel key=\{simulationRunId\} spec=\{spec\} params=\{params\} telemetryRef=\{graphTelemetryRef\} \/>/);
   assert.match(sandbox, /const canvasRef = useRef<HTMLCanvasElement>\(null\)/);
   assert.match(sandbox, /const animFrameRef = useRef<number>\(0\)/);
   assert.match(sandbox, /drawFrame\(\);\s*return \(\) =>/);
@@ -62,8 +73,9 @@ test("the restarted simulation starts immediately using the latest parameter sta
   assert.equal(restarted.params.gravity, 15);
   assert.equal(restarted.params.bounceCoeff, 0.9);
   assert.match(sandbox, /runSimulation\(simulationParams, ctx, simulationStateRef\.current\)/);
+  assert.match(sandbox, /collectGraphTelemetry\(spec\.graphs, simulationStateRef\.current, telemetryRef\.current\)/);
   assert.match(sandbox, /drawFrame\(\);/);
-  assert.match(page, /<Sandbox key=\{simulationRunId\} spec=\{spec\} params=\{params\} \/>/);
+  assert.match(page, /<Sandbox key=\{simulationRunId\} spec=\{spec\} params=\{params\} telemetryRef=\{graphTelemetryRef\} \/>/);
 });
 
 test("built-in and generated simulations share the same generic restart lifecycle", () => {

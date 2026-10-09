@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Check, Copy, FlaskConical, Play, RotateCcw, Save, Share2, Pause, Sparkles } from "lucide-react";
@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getRestartedSimulation } from "@/lib/runtime/simulation-restart";
 import { ensureAnonymousSession } from "@/lib/supabase/client";
+import { clearGraphTelemetry, createGraphTelemetryStore } from "@/lib/runtime/telemetry";
 
 type ParamValue = number | boolean | string;
 
@@ -27,6 +28,7 @@ export default function SimPage() {
   const [spec, setSpec] = useState<SimSpec | null>(null);
   const [params, setParams] = useState<Record<string, ParamValue>>({});
   const [simulationRunId, setSimulationRunId] = useState(0);
+  const graphTelemetryRef = useRef(createGraphTelemetryStore());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -66,6 +68,7 @@ export default function SimPage() {
   }, [id]);
 
   function handleApplyModification(newOverrides: Record<string, ParamValue>, updatedSpec: SimSpec) {
+    clearGraphTelemetry(graphTelemetryRef.current);
     setParams((prev) => ({ ...prev, ...newOverrides }));
     setSpec(updatedSpec);
     sessionStorage.setItem("currentSim", JSON.stringify({ ...updatedSpec, id: currentId }));
@@ -152,6 +155,7 @@ export default function SimPage() {
 
   function handleReset() {
     if (!spec) return;
+    clearGraphTelemetry(graphTelemetryRef.current);
     setSimulationRunId((current) => current + 1);
     const defaults: Record<string, ParamValue> = Object.fromEntries(
       spec.controls.map((control) => [control.id, control.default])
@@ -165,6 +169,7 @@ export default function SimPage() {
   }
 
   function handleSimulateAgain() {
+    clearGraphTelemetry(graphTelemetryRef.current);
     const restarted = getRestartedSimulation(simulationRunId, params);
     setSimulationRunId(restarted.runId);
     if (restarted.params !== params) setParams(restarted.params);
@@ -251,7 +256,7 @@ export default function SimPage() {
               <Button variant="ghost" size="sm" onClick={handleReset} aria-label="Reset simulation"><RotateCcw size={15} /><span className="hidden sm:inline">Reset</span></Button>
             </div>
           </div>
-          <div className="sim-canvas-wrap p-2 sm:p-3"><Sandbox key={simulationRunId} spec={spec} params={params} /></div>
+          <div className="sim-canvas-wrap p-2 sm:p-3"><Sandbox key={simulationRunId} spec={spec} params={params} telemetryRef={graphTelemetryRef} /></div>
           <div className="flex items-center justify-between border-t border-white/[.06] px-4 py-2.5 text-[11px] text-slate-500 sm:px-5">
             <span>Adjust a parameter to explore how the system responds.</span>
             <span className="hidden font-mono sm:inline">{spec.template}</span>
@@ -268,7 +273,7 @@ export default function SimPage() {
       </section>
 
       <section className="mt-5" aria-label="Live data"><DataPanel spec={spec} params={params} /></section>
-      <section className="mt-5" aria-label="Simulation graph"><GraphPanel key={simulationRunId} spec={spec} params={params} /></section>
+      <section className="mt-5" aria-label="Simulation graph"><GraphPanel key={simulationRunId} spec={spec} params={params} telemetryRef={graphTelemetryRef} /></section>
       <section className="mt-5" aria-label="Learn about the simulation"><LearnSection spec={spec} params={params} /></section>
       {spec.socraticQuestions.length > 0 && (
         <section className="mt-5 rounded-2xl border border-indigo-300/15 bg-indigo-300/[.03] p-4 sm:p-5" aria-label="Think About It">

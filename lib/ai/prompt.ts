@@ -17,6 +17,8 @@ Custom simulationCode uses params (control values), ctx (Canvas 2D context), Dat
 
 The custom code runs once per animation frame with the same state object. Initialize state fields only when they are undefined, then update them on each frame; do not reinitialize evolving values during normal frames.
 
+For every declared graph, emit a real measurement on each frame by setting state.telemetry to an object keyed by the exact graph id; each value is {x: number, y: number}. x must match that graph's xLabel and units, and y must match its yLabel and units. Use finite numbers derived from the same evolving simulation state used to draw the canvas. Do not invent separate example data. If a graph cannot be measured meaningfully, omit its telemetry entry.
+
 Run time and physics updates every frame using a consistent timestep. Read current control values continuously from params so control changes affect the next update.
 
 Use consistent units and signs. Canvas x increases rightward and y increases downward, so downward gravity is positive. For an upward launch from a positive speed control, set vertical canvas velocity to the negative of that speed.

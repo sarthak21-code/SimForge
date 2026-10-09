@@ -2,14 +2,16 @@
 import { useEffect, useRef, useState } from "react";
 import { SimSpec } from "@/lib/ai/schema";
 import { createSimulationRunner, type SimulationState } from "./simulationRunner";
+import { clearFrameGraphTelemetry, clearGraphTelemetry, collectGraphTelemetry, type GraphTelemetryRef } from "./telemetry";
 import { projectileTemplate } from "@/lib/runtime/templates/projectile";
 
 type Props = {
   spec: SimSpec;
   params: Record<string, number | boolean | string>;
+  telemetryRef: GraphTelemetryRef;
 };
 
-export function Sandbox({ spec, params }: Props) {
+export function Sandbox({ spec, params, telemetryRef }: Props) {
   const codeWithoutComments = spec.simulationCode.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
   const hasCanvasDrawing = /\bctx\s*\.\s*(?:fillRect|clearRect|strokeRect|fillText|strokeText|beginPath|moveTo|lineTo|arc|ellipse|quadraticCurveTo|bezierCurveTo|fill|stroke)\s*\(/.test(codeWithoutComments);
   const useProjectileFallback = spec.template === "projectile" && !hasCanvasDrawing;
@@ -52,6 +54,7 @@ export function Sandbox({ spec, params }: Props) {
 
     if (simulationCodeRef.current !== simulationCode || params.reset) {
       simulationStateRef.current = {};
+      clearGraphTelemetry(telemetryRef.current);
     }
     simulationCodeRef.current = simulationCode;
 
@@ -85,7 +88,9 @@ export function Sandbox({ spec, params }: Props) {
     function drawFrame() {
       if (!running || !ctx) return;
       try {
+        clearFrameGraphTelemetry(simulationStateRef.current);
         runSimulation(simulationParams, ctx, simulationStateRef.current);
+        collectGraphTelemetry(spec.graphs, simulationStateRef.current, telemetryRef.current);
       } catch (err) {
         running = false;
         const errorMsg = err instanceof Error ? err.message : String(err);

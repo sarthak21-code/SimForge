@@ -1,13 +1,16 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { SimSpec } from "@/lib/ai/schema";
+import { TelemetryGraph } from "./TelemetryGraph";
+import type { GraphTelemetryRef } from "@/lib/runtime/telemetry";
 
 type Props = {
   spec: SimSpec;
   params: Record<string, number | boolean | string>;
+  telemetryRef: GraphTelemetryRef;
 };
 
-export function GraphPanel({ spec, params }: Props) {
+export function GraphPanel({ spec, params, telemetryRef }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dataHistoryRef = useRef<{ x: number; y: number }[]>([]);
   const simTimeRef = useRef(0);
@@ -280,21 +283,25 @@ export function GraphPanel({ spec, params }: Props) {
   }, [template, params]);
 
   if (template === "custom") {
-    if (spec.graphs.length === 0) return null;
     return (
       <div className="glass rounded-2xl p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Simulation graphs</h3>
-          <span className="text-xs text-slate-500 font-mono">Declared axes</span>
+          <span className="text-xs text-slate-500 font-mono">Live telemetry</span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {spec.graphs.map((graph) => (
-            <div key={graph.id} className="rounded-xl border border-white/[.06] bg-slate-950/45 p-3">
-              <p className="text-sm font-medium text-slate-200">{graph.label}</p>
-              <p className="mt-1 text-xs text-slate-400">{graph.xLabel} · {graph.yLabel}</p>
-            </div>
-          ))}
-        </div>
+        {spec.graphs.length === 0 ? (
+          <p className="text-sm text-slate-400">This simulation has no declared graphs.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {spec.graphs.map((graph) => (
+              <div key={graph.id} className="rounded-xl border border-white/[.06] bg-slate-950/45 p-3">
+                <p className="text-sm font-medium text-slate-200">{graph.label}</p>
+                <p className="mt-1 text-xs text-slate-400">{graph.xLabel} · {graph.yLabel}</p>
+                <TelemetryGraph graph={graph} telemetryRef={telemetryRef} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
