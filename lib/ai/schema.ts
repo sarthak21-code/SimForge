@@ -83,6 +83,7 @@ export const SimSpecSchema = z.object({
     "wave",
     "orbit",
     "circuit",
+    "binary-search",
     "sorting",
     "supply-demand",
     "population",

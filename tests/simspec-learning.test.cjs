@@ -111,9 +111,9 @@ test("custom spring-mass semantic intent is valid", () => {
   assert.equal(parsed.phenomenon, "the mass oscillates as spring force restores it toward equilibrium");
 });
 
-test("built-in projectile and pendulum specs remain valid without semantic fields", () => {
+test("built-in projectile, pendulum, and binary-search specs remain valid without semantic fields", () => {
   const { subject, phenomenon, visualRequirements, ...builtInBase } = baseSpec;
-  for (const template of ["projectile", "pendulum"]) {
+  for (const template of ["projectile", "pendulum", "binary-search"]) {
     assert.equal(SimSpecSchema.safeParse({ ...builtInBase, template }).success, true);
   }
 });

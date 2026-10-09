@@ -125,7 +125,10 @@ export function DataPanel({ spec, params }: Props) {
   }, [spec.template, params]);
 
   const displayedMetrics = customMetrics ?? metrics;
-  if ((spec.template === "custom" || spec.template === "supply-demand") && Object.keys(displayedMetrics).length === 0) return null;
+  if (
+    spec.template === "binary-search" ||
+    ((spec.template === "custom" || spec.template === "supply-demand") && Object.keys(displayedMetrics).length === 0)
+  ) return null;
 
   return (
     <div className="glass rounded-2xl p-4 sm:p-5">

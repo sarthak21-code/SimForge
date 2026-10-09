@@ -23,6 +23,8 @@ export async function generateSim(userQuery: string) {
     return generateCustomWithProviders({ userQuery });
   }
 
+  if (builtInFallback.template === "binary-search") return builtInFallback;
+
   try {
     const provider = createOpenRouterBuiltInProvider();
     const response = await provider.generate(userQuery, SYSTEM_PROMPT, OPENROUTER_TIMEOUT_MS);

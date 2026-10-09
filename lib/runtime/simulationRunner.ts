@@ -7,7 +7,7 @@ export type SimulationRunner = (
 ) => void;
 
 /** Compile once per simulation setup; state is shared across every frame call. */
-export function createSimulationRunner(simulationCode: string): SimulationRunner {
+export function createSimulationRunner(simulationCode: string, dateConstructor: DateConstructor = Date): SimulationRunner {
   // eslint-disable-next-line no-new-func
   const run = new Function("params", "ctx", "Date", "state", simulationCode) as (
     params: Record<string, number | boolean | string>,
@@ -16,5 +16,5 @@ export function createSimulationRunner(simulationCode: string): SimulationRunner
     state: SimulationState
   ) => void;
 
-  return (params, ctx, state) => run(params, ctx, Date, state);
+  return (params, ctx, state) => run(params, ctx, dateConstructor, state);
 }

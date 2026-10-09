@@ -28,6 +28,7 @@ const templates = {
   "./wave": require("../lib/runtime/templates/wave.ts"),
   "./orbit": require("../lib/runtime/templates/orbit.ts"),
   "./circuit": require("../lib/runtime/templates/circuit.ts"),
+  "./binary-search": require("../lib/runtime/templates/binary-search.ts"),
 };
 const loadedModule = new Module(sourcePath, module);
 loadedModule.filename = sourcePath;
@@ -38,6 +39,7 @@ loadedModule._compile(outputText, sourcePath);
 const { getTemplateFallback, extractParameters, applyParamOverrides } = loadedModule.exports;
 const { SimSpecSchema } = require("../lib/ai/schema.ts");
 const { pendulumTemplate } = templates["./pendulum"];
+const { binarySearchTemplate } = templates["./binary-search"];
 
 const builtInCases = [
   ["projectile motion with angle and velocity", "projectile"],
@@ -46,6 +48,7 @@ const builtInCases = [
   ["planet orbiting the Sun", "orbit"],
   ["orbital mechanics", "orbit"],
   ["RC circuit charging", "circuit"],
+  ["Visualize binary search on a sorted array", "binary-search"],
   ["pendulum", "pendulum"],
   ["simple pendulum", "pendulum"],
   ["double pendulum", "pendulum"],
@@ -64,7 +67,6 @@ const customCases = [
   "ball falling under gravity",
   "falling object",
   "free fall",
-  "binary search visualization",
   "population growth",
   "spring-mass",
   "mass on a spring",
@@ -109,4 +111,15 @@ test("asking for length and gravity controls without values preserves template d
   assert.deepEqual(overrides, {});
   assert.equal(fallback.controls.find(({ id }) => id === "length").default, 150);
   assert.equal(fallback.controls.find(({ id }) => id === "gravity").default, 9.8);
+});
+
+test("binary-search prompts use the deterministic template and parse requested controls", () => {
+  const query = "Visualize binary search on a sorted array with array size 20 and search speed 3";
+  const fallback = getTemplateFallback(query);
+  const parsed = SimSpecSchema.safeParse(fallback);
+  assert.equal(fallback.template, "binary-search");
+  assert.equal(parsed.success, true);
+  assert.equal(fallback.simulationCode, binarySearchTemplate.simulationCode);
+  assert.equal(fallback.controls.find(({ id }) => id === "arraySize").default, 20);
+  assert.equal(fallback.controls.find(({ id }) => id === "searchSpeed").default, 3);
 });

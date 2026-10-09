@@ -79,7 +79,7 @@ test("the restarted simulation starts immediately using the latest parameter sta
 });
 
 test("built-in and generated simulations share the same generic restart lifecycle", () => {
-  const templates = ["projectile", "pendulum", "circuit", "binary search", "spring-mass", "population growth", "bouncing ball"];
+  const templates = ["projectile", "pendulum", "circuit", "binary-search", "binary search", "spring-mass", "population growth", "bouncing ball"];
   for (const template of templates) {
     const params = { velocity: 32, angle: 55, gravity: 15, bounceCoeff: 0.9, marker: template };
     const restarted = getRestartedSimulation(2, params);

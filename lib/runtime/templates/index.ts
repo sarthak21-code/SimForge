@@ -4,6 +4,7 @@ import { pendulumTemplate } from "./pendulum";
 import { waveTemplate } from "./wave";
 import { orbitTemplate } from "./orbit";
 import { circuitTemplate } from "./circuit";
+import { binarySearchTemplate } from "./binary-search";
 
 export function extractParameters(
   template: string,
@@ -41,7 +42,14 @@ export function extractParameters(
     overrides.reset = true;
   }
 
-  if (template === "wave") {
+  if (template === "binary-search") {
+    const arraySize = findNumber(/(?:array\s+(?:size|length)|size\s+of\s+the\s+array)\s*(?:to|of|at|=)?\s*(\d+)/);
+    const searchSpeed = findNumber(/(?:search\s+)?speed\s*(?:to|of|at|=)?\s*(\d+(?:\.\d+)?)/);
+    const targetValue = findNumber(/(?:target(?:\s+value)?|search\s+for|find)\s*(?:to|of|at|=)?\s*(\d+)/);
+    if (arraySize !== null) overrides.arraySize = arraySize;
+    if (searchSpeed !== null) overrides.searchSpeed = searchSpeed;
+    if (targetValue !== null) overrides.targetValue = targetValue;
+  } else if (template === "wave") {
     // Frequency
     const numFreq =
       findNumber(/(?:frequency|freq)\s*(?:to|of|at|=)?\s*(\d+(?:\.\d+)?)/) ??
@@ -362,7 +370,9 @@ export function getTemplateFallback(query: string): SimSpec {
     describesLaunchedBall ||
     (/\binitial\s+velocity\b/.test(q) && /\b(?:launch|initial)\s+angle\b/.test(q));
 
-  if (/\b(rc(?:\s*circuit)?|circuit|capacitor|resistor)\b/.test(q)) {
+  if (/\bbinary\s+search\b/.test(q)) {
+    baseSpec = binarySearchTemplate;
+  } else if (/\b(rc(?:\s*circuit)?|circuit|capacitor|resistor)\b/.test(q)) {
     baseSpec = circuitTemplate;
   } else if (isOrbitPrompt) {
     baseSpec = orbitTemplate;

@@ -16,7 +16,9 @@ require.extensions[".ts"] = (loadedModule, filename) => {
 const templates = require("../lib/runtime/templates/index.ts");
 const validation = require("../lib/ai/validation.ts");
 let mockGeneratedSpec;
+let providerCalls = 0;
 const { pendulumTemplate } = require("../lib/runtime/templates/pendulum.ts");
+const { binarySearchTemplate } = require("../lib/runtime/templates/binary-search.ts");
 const sourcePath = path.resolve(__dirname, "../lib/ai/generate.ts");
 const source = fs.readFileSync(sourcePath, "utf8");
 const { outputText } = ts.transpileModule(source, {
@@ -34,14 +36,17 @@ loadedModule.require = (specifier) => {
   if (specifier === "./providers/openrouter") {
     return {
       createOpenRouterBuiltInProvider: () => ({
-        generate: async (query) => ({
-          content: JSON.stringify(mockGeneratedSpec(query)),
-          provider: "Mock",
-          model: "mock-model",
-          httpStatus: 200,
-          elapsedMs: 1,
-          finishReason: "stop",
-        }),
+        generate: async (query) => {
+          providerCalls++;
+          return {
+            content: JSON.stringify(mockGeneratedSpec(query)),
+            provider: "Mock",
+            model: "mock-model",
+            httpStatus: 200,
+            elapsedMs: 1,
+            finishReason: "stop",
+          };
+        },
       }),
     };
   }
@@ -73,6 +78,7 @@ function validCustomSpec() {
 }
 
 test("a working pendulum prompt remains pendulum through generation", async () => {
+  providerCalls = 0;
   mockGeneratedSpec = (query) => templates.getTemplateFallback(query);
   const spec = await generateSim("How does a pendulum swing?");
   assert.equal(spec.template, "pendulum");
@@ -80,6 +86,7 @@ test("a working pendulum prompt remains pendulum through generation", async () =
 });
 
 test("a mismatched valid provider response uses the exact pendulum fallback", async () => {
+  providerCalls = 0;
   mockGeneratedSpec = () => validCustomSpec();
   const spec = await generateSim("Create a simple pendulum simulation. Include controls for length and gravity.");
   assert.equal(spec.template, "pendulum");
@@ -93,6 +100,7 @@ test("a mismatched valid provider response uses the exact pendulum fallback", as
 
 
 test("a pendulum-labeled response with different code still preserves the built-in renderer", async () => {
+  providerCalls = 0;
   mockGeneratedSpec = (query) => ({
     ...templates.getTemplateFallback(query),
     simulationCode: "ctx.clearRect(0,0,800,500);ctx.fillRect(0,0,1,1);",
@@ -101,4 +109,16 @@ test("a pendulum-labeled response with different code still preserves the built-
   assert.equal(spec.template, "pendulum");
   assert.equal(spec.simulationCode.trim(), pendulumTemplate.simulationCode.trim());
   assert.equal(spec.controls.find(({ id }) => id === "length").default, 150);
+});
+
+test("binary-search requests always use the verified deterministic template", async () => {
+  providerCalls = 0;
+  mockGeneratedSpec = () => validCustomSpec();
+  const spec = await generateSim("Visualize binary search on a sorted array with array size 20 and search speed 3.");
+
+  assert.equal(providerCalls, 0, "binary-search animation must not be replaced by arbitrary generated code");
+  assert.equal(spec.template, "binary-search");
+  assert.equal(spec.simulationCode, binarySearchTemplate.simulationCode);
+  assert.equal(spec.controls.find(({ id }) => id === "arraySize").default, 20);
+  assert.equal(spec.controls.find(({ id }) => id === "searchSpeed").default, 3);
 });
