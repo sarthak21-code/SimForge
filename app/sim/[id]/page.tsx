@@ -152,6 +152,7 @@ export default function SimPage() {
 
   function handleReset() {
     if (!spec) return;
+    setSimulationRunId((current) => current + 1);
     const defaults: Record<string, ParamValue> = Object.fromEntries(
       spec.controls.map((control) => [control.id, control.default])
     );

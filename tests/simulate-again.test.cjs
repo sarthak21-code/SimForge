@@ -61,7 +61,7 @@ test("the restarted simulation starts immediately using the latest parameter sta
   const restarted = getRestartedSimulation(0, latest);
   assert.equal(restarted.params.gravity, 15);
   assert.equal(restarted.params.bounceCoeff, 0.9);
-  assert.match(sandbox, /fn\(simulationParams, ctx, Date\)/);
+  assert.match(sandbox, /runSimulation\(simulationParams, ctx, simulationStateRef\.current\)/);
   assert.match(sandbox, /drawFrame\(\);/);
   assert.match(page, /<Sandbox key=\{simulationRunId\} spec=\{spec\} params=\{params\} \/>/);
 });

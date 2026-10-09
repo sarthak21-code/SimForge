@@ -13,13 +13,13 @@ For custom specs, define semantic intent before writing simulationCode: subject 
 
 Then write a short valid JavaScript function body that faithfully implements the subject and phenomenon and attempts each visualRequirement. A title or metadata label cannot substitute for the requested visual behavior. Built-in templates render their own simulation.
 
-Custom simulationCode uses the existing params (control values), ctx (Canvas 2D context), and Date runtime. Draw visibly on the 800×500 canvas, clear it first, and make each included control affect the visualization. Use only Math, params, ctx, and Date. No imports, external libraries, DOM manipulation, document, window, fetch, network requests, eval, canvas.getContext, or code comments. Keep the code syntactically valid and executable as a function body.
+Custom simulationCode uses params (control values), ctx (Canvas 2D context), Date, and state (a persistent mutable object shared across frames). Store evolving positions, velocities, timers, and other simulation data in state because local variables are recreated each frame. Draw visibly on the 800×500 canvas, clear it first, and make each included control affect the visualization. Use only Math, params, ctx, Date, and state. No imports, external libraries, DOM manipulation, document, window, fetch, network requests, eval, canvas.getContext, or code comments. Keep the code syntactically valid and executable as a function body.
 
-The custom code runs from top to bottom once per animation frame; local variables reset on every call. Initialize persistent simulation state once on ctx (for example, ctx.__simState = ctx.__simState || {...}) and update that same state each frame. Do not reset state during normal frames; only reset it when an explicit control requests it.
+The custom code runs once per animation frame with the same state object. Initialize state fields only when they are undefined, then update them on each frame; do not reinitialize evolving values during normal frames.
 
 Run time and physics updates every frame using a consistent timestep. Read current control values continuously from params so control changes affect the next update.
 
-Use consistent units and signs. Canvas x increases rightward and y increases downward; convert explicitly if using a physics convention where y increases upward.
+Use consistent units and signs. Canvas x increases rightward and y increases downward, so downward gravity is positive. For an upward launch from a positive speed control, set vertical canvas velocity to the negative of that speed.
 
 For collisions, detect crossing a boundary, clamp position to the boundary first, then reverse the velocity component and apply the bounce coefficient. Keep checking collisions each frame so repeated bounces continue.
 

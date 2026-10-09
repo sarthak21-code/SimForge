@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { SimSpec } from "@/lib/ai/schema";
+import { createSimulationRunner, type SimulationState } from "./simulationRunner";
 import { projectileTemplate } from "@/lib/runtime/templates/projectile";
 
 type Props = {
@@ -32,6 +33,8 @@ export function Sandbox({ spec, params }: Props) {
   }
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
+  const simulationStateRef = useRef<SimulationState>({});
+  const simulationCodeRef = useRef<string | null>(null);
   const [simError, setSimError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,25 +50,42 @@ export function Sandbox({ spec, params }: Props) {
       cancelAnimationFrame(animFrameRef.current);
     }
 
+    if (simulationCodeRef.current !== simulationCode || params.reset) {
+      simulationStateRef.current = {};
+    }
+    simulationCodeRef.current = simulationCode;
+
+    let runSimulation: ReturnType<typeof createSimulationRunner>;
+    try {
+      if (spec.template === "custom") {
+        if (!spec.simulationCode.trim()) {
+          throw new Error("Custom simulation is missing runnable simulationCode.");
+        }
+        if (/\bdocument\b|\bwindow\b|\bfetch\b|\beval\s*\(|\bimport\b|\bcanvas\s*\.\s*getContext\s*\(/i.test(spec.simulationCode)) {
+          throw new Error("Custom simulationCode uses an unsupported browser or network API.");
+        }
+        if (!/\bctx\s*\.\s*(?:fillRect|clearRect|strokeRect|fillText|strokeText|beginPath|moveTo|lineTo|arc|ellipse|quadraticCurveTo|bezierCurveTo|fill|stroke)\s*\(/.test(spec.simulationCode)) {
+          throw new Error("Custom simulationCode does not draw a Canvas 2D visualization.");
+        }
+      }
+      runSimulation = createSimulationRunner(simulationCode);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setSimError(errorMsg);
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, 800, 500);
+      ctx.fillStyle = "#ef4444";
+      ctx.font = "16px sans-serif";
+      ctx.fillText("Simulation error: " + errorMsg.slice(0, 60), 20, 60);
+      return;
+    }
+
     let running = true;
 
     function drawFrame() {
       if (!running || !ctx) return;
       try {
-        if (spec.template === "custom") {
-          if (!spec.simulationCode.trim()) {
-            throw new Error("Custom simulation is missing runnable simulationCode.");
-          }
-          if (/\bdocument\b|\bwindow\b|\bfetch\b|\beval\s*\(|\bimport\b|\bcanvas\s*\.\s*getContext\s*\(/i.test(spec.simulationCode)) {
-            throw new Error("Custom simulationCode uses an unsupported browser or network API.");
-          }
-          if (!/\bctx\s*\.\s*(?:fillRect|clearRect|strokeRect|fillText|strokeText|beginPath|moveTo|lineTo|arc|ellipse|quadraticCurveTo|bezierCurveTo|fill|stroke)\s*\(/.test(spec.simulationCode)) {
-            throw new Error("Custom simulationCode does not draw a Canvas 2D visualization.");
-          }
-        }
-        // eslint-disable-next-line no-new-func
-        const fn = new Function("params", "ctx", "Date", simulationCode);
-        fn(simulationParams, ctx, Date);
+        runSimulation(simulationParams, ctx, simulationStateRef.current);
       } catch (err) {
         running = false;
         const errorMsg = err instanceof Error ? err.message : String(err);
